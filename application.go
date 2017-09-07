@@ -14,10 +14,10 @@ type Application struct {
 	SessionKey string
 
 	// Sessions is our HTTP Session Manager system
-	Sessions SessionManager
+	Sessions *SessionManager
 
 	// Routes is our Route Manager system
-	Routes RouteManager
+	Routes *RouteManager
 }
 
 // NewApplication returns a new default MVC Application object

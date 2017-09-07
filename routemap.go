@@ -4,13 +4,13 @@ import "net/http"
 
 type RouteMap struct {
 	ControllerName string
-	Controller     IController
+	Controller     interface{}
 }
 
-func NewRouteMap(name string, controller IController) RouteMap {
+func NewRouteMap(name string, controller interface{}) RouteMap {
 	return RouteMap{
 		ControllerName: name,
-		Controller:     controller,
+		Controller:     &controller,
 	}
 }
 
