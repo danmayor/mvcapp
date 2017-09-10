@@ -6,16 +6,36 @@ import (
 	"testing"
 )
 
+type TestModel struct {
+	Title   string
+	Welcome string
+}
+
 type TestController struct {
 	Controller
 }
 
-func (controller TestController) Index() {
-	fmt.Println("Yay it works!")
+func NewTestController() *TestController {
+	rtn := &TestController{}
+	rtn.RegisterAction("GET", "Index", rtn.Index)
+	return rtn
+}
+
+func (controller TestController) Index(params []string) IActionResult {
+	templates := []string{"testindex.htm"}
+	model := TestModel{
+		Title:   "Test Controller",
+		Welcome: "This message is from the data model!",
+	}
+
+	result := NewViewResult(templates, model)
+	result.AddHeader("Framework", "Digivance MVC Application Framework")
+
+	return result
 }
 
 func TestRouteManager(t *testing.T) {
-	controller := TestController{}
+	controller := NewTestController()
 	mgr := NewRouteManager()
 	mgr.RegisterController("Test", controller)
 
@@ -23,4 +43,5 @@ func TestRouteManager(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	mgr.HandleRequest(response, request)
+	fmt.Println(response.Body.String())
 }

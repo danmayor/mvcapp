@@ -1,73 +1,73 @@
+/*
+	Digivance MVC Application Framework
+	Route Manager Features
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines the basic route manager functionality
+*/
+
 package mvcapp
 
 import (
-	"fmt"
 	"net/http"
-	"reflect"
-	"runtime"
 
 	"github.com/Digivance/str"
 )
 
+// RouteManager provides the basic http request pipeline of the
+// mvcapp framework
 type RouteManager struct {
 	DefaultController string
 	DefaultAction     string
 
-	Routes []RouteMap
+	Routes []*RouteMap
 }
 
+// NewRouteManager returns a new route manager object with default
+// controller and action tokens set to "Home" and "Index"
 func NewRouteManager() *RouteManager {
 	return &RouteManager{
 		DefaultController: "Home",
 		DefaultAction:     "Index",
-		Routes:            make([]RouteMap, 0),
+		Routes:            make([]*RouteMap, 0),
 	}
 }
 
+// RegisterController is used to map a custom controller object to the
+// controller section of the requested url (E.g. "site.com/CONTROLLER/action")
 func (manager *RouteManager) RegisterController(name string, controller IController) {
 	manager.Routes = append(manager.Routes, NewRouteMap(name, controller))
 }
 
+// HandleRequest is mapped to the http handler method and processes the
+// HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
 	parts := str.Split(request.URL.EscapedPath(), '/')
 
-	var controllerName string
-	var actionName string
+	controllerName := manager.DefaultController
+	actionName := manager.DefaultAction
+	params := []string{}
 
-	if len(parts) >= 2 {
+	if len(parts) > 2 {
 		controllerName = parts[0]
 		actionName = parts[1]
+		params = parts[2:]
 	} else {
-		if len(parts) == 1 {
+		if len(parts) >= 2 {
 			controllerName = parts[0]
-			actionName = manager.DefaultAction
+			actionName = parts[1]
 		} else {
-			controllerName = manager.DefaultController
-			actionName = manager.DefaultAction
+			if len(parts) == 1 {
+				controllerName = parts[0]
+			}
 		}
 	}
 
-	for _, v := range manager.Routes {
-		if str.Compare(controllerName, v.ControllerName) {
-			cv := v.Controller
-			controller := reflect.ValueOf(cv).Elem()
-			if controller != reflect.Zero(controller.Type()) {
-				/*
-					controllerAction := controller.FieldByNameFunc(func(name string) bool {
-						return str.Compare(name, actionName)
-					})
-				*/
-
-				controllerAction := runtime.FuncForPC(reflect.ValueOf(cv).Pointer()).Name
-				fmt.Println(actionName)
-				fmt.Println(controllerAction)
-
-				/*
-					if controllerAction != reflect.Zero(controllerAction.Type()) {
-						controllerAction.Call([]reflect.Value{})
-					}
-				*/
-			}
+	for _, route := range manager.Routes {
+		if str.Compare(controllerName, route.ControllerName) {
+			result := route.Controller.Execute(actionName, params)
+			result.Execute(response)
+			return
 		}
 	}
 }
