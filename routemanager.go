@@ -65,6 +65,10 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 	for _, route := range manager.Routes {
 		if str.Compare(controllerName, route.ControllerName) {
+			route.Controller.SetRequest(request)
+			// Set Cookies
+			// Set Session
+
 			result := route.Controller.Execute(actionName, params)
 			result.Execute(response)
 			return

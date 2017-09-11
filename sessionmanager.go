@@ -1,3 +1,11 @@
+/*
+	Digivance MVC Application Framework
+	HTTP Session Manager Features
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines http session model manager functionality
+*/
+
 package mvcapp
 
 import (
@@ -6,44 +14,53 @@ import (
 	"github.com/Digivance/str"
 )
 
+// SessionManager is the base struct that manages the collection
+// of current http session models
 type SessionManager struct {
-	Sessions []Session
+	Sessions []*Session
 }
 
-func NewSessionManager() SessionManager {
-	return SessionManager{
-		Sessions: make([]Session, 0),
+// NewSessionManager returns a new Session Manager object
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		Sessions: make([]*Session, 0),
 	}
 }
 
+// GetSession returns the current http session for the provided session id
 func (manager *SessionManager) GetSession(id string) *Session {
 	for key, val := range manager.Sessions {
 		if str.Equals(val.ID, id) {
-			return &manager.Sessions[key]
+			return manager.Sessions[key]
 		}
 	}
 
 	return nil
 }
 
+// CreateSession creates and returns a new http session model
 func (manager *SessionManager) CreateSession() *Session {
 	i := len(manager.Sessions)
 	session := NewSession()
 	manager.Sessions = append(manager.Sessions, session)
-	return &manager.Sessions[i]
+	return manager.Sessions[i]
 }
 
-func (manager *SessionManager) SetSession(session Session) {
+// SetSession will set (creating if necessary) the provided session to
+// the session manager collection
+func (manager *SessionManager) SetSession(session *Session) {
 	id := session.ID
 	res := manager.GetSession(id)
 
 	if res != nil {
-		res = &session
+		res = session
 	} else {
 		manager.Sessions = append(manager.Sessions, session)
 	}
 }
 
+// DropSession will remove a session from the session manager collection based
+// on the provided session id
 func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
 		if str.Equals(val.ID, id) {
@@ -52,6 +69,7 @@ func (manager *SessionManager) DropSession(id string) {
 	}
 }
 
+// CleanSessions will drop inactive sessions
 func (manager *SessionManager) CleanSessions() {
 	now := time.Now()
 	expires := now.Add(15 * time.Minute)

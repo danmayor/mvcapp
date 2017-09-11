@@ -19,6 +19,7 @@ import (
 type IController interface {
 	RegisterAction(string, string, ActionMethod)
 	Execute(string, []string) IActionResult
+	SetRequest(*http.Request)
 }
 
 // Controller contains the basic members shared by custom controllers,
@@ -37,11 +38,21 @@ func (controller *Controller) RegisterAction(verb string, name string, method Ac
 	controller.ActionRoutes = append(controller.ActionRoutes, NewActionMap(verb, name, method))
 }
 
+// SetRequest is used to set the http.Request reference
+func (controller *Controller) SetRequest(request *http.Request) {
+	controller.Request = request
+}
+
+func (controller *Controller) SetCookie(cookie *http.Cookie) {
+}
+
 // Execute the route manager to call the action method mapped to the provided
 // actionName. params is the remainder of the url split by / represented as strings
 func (controller *Controller) Execute(actionName string, params []string) IActionResult {
+	verb := controller.Request.Method
+
 	for _, actionMethod := range controller.ActionRoutes {
-		if str.Compare(actionMethod.Name, actionName) {
+		if str.Compare(actionMethod.Name, actionName) && (str.Compare(actionMethod.Verb, "ALL") || str.Compare(actionMethod.Verb, verb)) {
 			return actionMethod.Method(params)
 		}
 	}

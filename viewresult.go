@@ -33,6 +33,7 @@ func NewViewResult(templates []string, model interface{}) *ViewResult {
 	}
 }
 
+// AddHeader adds an http header key value pair combination to the result
 func (result *ViewResult) AddHeader(key string, val string) {
 	result.Headers[key] = val
 }
