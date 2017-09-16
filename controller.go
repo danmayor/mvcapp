@@ -28,8 +28,18 @@ type Controller struct {
 	IController
 
 	Session      *Session
+	Cookies      []*http.Cookie
 	Request      *http.Request
 	ActionRoutes []*ActionMap
+}
+
+func NewBaseController(request *http.Request) *Controller {
+	return &Controller{
+		Session:      &Session{},
+		Cookies:      make([]*http.Cookie, 0),
+		Request:      request,
+		ActionRoutes: make([]*ActionMap, 0),
+	}
 }
 
 // RegisterAction allows package caller to map a controller action method to
@@ -44,6 +54,7 @@ func (controller *Controller) SetRequest(request *http.Request) {
 }
 
 func (controller *Controller) SetCookie(cookie *http.Cookie) {
+	controller.Cookies = append(controller.Cookies, cookie)
 }
 
 // Execute the route manager to call the action method mapped to the provided
@@ -52,7 +63,7 @@ func (controller *Controller) Execute(actionName string, params []string) IActio
 	verb := controller.Request.Method
 
 	for _, actionMethod := range controller.ActionRoutes {
-		if str.Compare(actionMethod.Name, actionName) && (str.Compare(actionMethod.Verb, "ALL") || str.Compare(actionMethod.Verb, verb)) {
+		if str.Compare(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || str.Compare(actionMethod.Verb, verb)) {
 			return actionMethod.Method(params)
 		}
 	}

@@ -14,6 +14,11 @@ import (
 	"github.com/Digivance/str"
 )
 
+// ControllerCreator is a delegate to the creation method of a controller
+// that is mapped as the primary route. (E.g. site.com/CONTROLLER is mapped
+// to a NewXController method that implements this signature)
+type ControllerCreator func(*http.Request) IController
+
 // RouteManager provides the basic http request pipeline of the
 // mvcapp framework
 type RouteManager struct {
@@ -35,8 +40,8 @@ func NewRouteManager() *RouteManager {
 
 // RegisterController is used to map a custom controller object to the
 // controller section of the requested url (E.g. "site.com/CONTROLLER/action")
-func (manager *RouteManager) RegisterController(name string, controller IController) {
-	manager.Routes = append(manager.Routes, NewRouteMap(name, controller))
+func (manager *RouteManager) RegisterController(name string, creator ControllerCreator) {
+	manager.Routes = append(manager.Routes, NewRouteMap(name, creator))
 }
 
 // HandleRequest is mapped to the http handler method and processes the
@@ -65,11 +70,11 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 	for _, route := range manager.Routes {
 		if str.Compare(controllerName, route.ControllerName) {
-			route.Controller.SetRequest(request)
+			controller := route.CreateController(request)
 			// Set Cookies
 			// Set Session
 
-			result := route.Controller.Execute(actionName, params)
+			result := controller.Execute(actionName, params)
 			result.Execute(response)
 			return
 		}

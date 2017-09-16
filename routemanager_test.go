@@ -2,6 +2,7 @@ package mvcapp
 
 import (
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 )
@@ -12,11 +13,13 @@ type TestModel struct {
 }
 
 type TestController struct {
-	Controller
+	*Controller
 }
 
-func NewTestController() *TestController {
-	rtn := &TestController{}
+func NewTestController(request *http.Request) IController {
+	rtn := &TestController{
+		Controller: NewBaseController(request),
+	}
 	rtn.RegisterAction("GET", "Index", rtn.Index)
 	return rtn
 }
@@ -35,9 +38,8 @@ func (controller TestController) Index(params []string) IActionResult {
 }
 
 func TestRouteManager(t *testing.T) {
-	controller := NewTestController()
 	mgr := NewRouteManager()
-	mgr.RegisterController("Test", controller)
+	mgr.RegisterController("Test", NewTestController)
 
 	request := httptest.NewRequest("GET", "/Test/Index", nil)
 	response := httptest.NewRecorder()
