@@ -70,11 +70,15 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 	for _, route := range manager.Routes {
 		if str.Compare(controllerName, route.ControllerName) {
-			controller := route.CreateController(request)
+			icontroller := route.CreateController(request)
 			// Set Cookies
 			// Set Session
 
-			result := controller.Execute(actionName, params)
+			result := icontroller.Execute(actionName, params)
+
+			for _, cookie := range controller.Cookies {
+				http.SetCookie(response, cookie)
+			}
 			result.Execute(response)
 			return
 		}

@@ -34,12 +34,18 @@ type Controller struct {
 }
 
 func NewBaseController(request *http.Request) *Controller {
-	return &Controller{
+	rtn := &Controller{
 		Session:      &Session{},
 		Cookies:      make([]*http.Cookie, 0),
 		Request:      request,
 		ActionRoutes: make([]*ActionMap, 0),
 	}
+
+	for i, cookie := range request.Cookies() {
+		rtn.Cookies[i] = cookie
+	}
+
+	return rtn
 }
 
 // RegisterAction allows package caller to map a controller action method to
@@ -64,7 +70,8 @@ func (controller *Controller) Execute(actionName string, params []string) IActio
 
 	for _, actionMethod := range controller.ActionRoutes {
 		if str.Compare(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || str.Compare(actionMethod.Verb, verb)) {
-			return actionMethod.Method(params)
+			res := actionMethod.Method(params)
+			return res
 		}
 	}
 
