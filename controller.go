@@ -20,6 +20,7 @@ type IController interface {
 	RegisterAction(string, string, ActionMethod)
 	Execute(string, []string) IActionResult
 	SetRequest(*http.Request)
+	ToController() *Controller
 }
 
 // Controller contains the basic members shared by custom controllers,
@@ -76,4 +77,8 @@ func (controller *Controller) Execute(actionName string, params []string) IActio
 	}
 
 	return NewActionResult([]byte{})
+}
+
+func (controller *Controller) ToController() *Controller {
+	return controller
 }

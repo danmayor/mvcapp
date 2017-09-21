@@ -1,7 +1,6 @@
 package mvcapp
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,6 +24,12 @@ func NewTestController(request *http.Request) IController {
 }
 
 func (controller TestController) Index(params []string) IActionResult {
+	controller.Cookies = append(controller.Cookies, &http.Cookie{
+		Name:   "Dan",
+		Value:  "is awesome!",
+		MaxAge: 900,
+	})
+
 	templates := []string{"testindex.htm"}
 	model := TestModel{
 		Title:   "Test Controller",
@@ -45,5 +50,15 @@ func TestRouteManager(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	mgr.HandleRequest(response, request)
-	fmt.Println(response.Body.String())
+
+	/*
+		fmt.Println(response.Body.String())
+
+		res := http.Response{Header: response.Header()}
+		cookies := res.Cookies()
+		name := cookies[0].Name
+		value := cookies[0].Value
+
+		fmt.Println(fmt.Sprintf("[%s] = \"%s\"\n", name, value))
+	*/
 }

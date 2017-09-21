@@ -75,10 +75,12 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 			// Set Session
 
 			result := icontroller.Execute(actionName, params)
+			controller := icontroller.ToController()
 
 			for _, cookie := range controller.Cookies {
 				http.SetCookie(response, cookie)
 			}
+
 			result.Execute(response)
 			return
 		}
