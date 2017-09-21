@@ -15,7 +15,7 @@ import (
 )
 
 // SessionManager is the base struct that manages the collection
-// of current http session models
+// of current http session models.
 type SessionManager struct {
 	Sessions []*Session
 }
@@ -35,13 +35,14 @@ func (manager *SessionManager) GetSession(id string) *Session {
 		}
 	}
 
-	return nil
+	return manager.CreateSession(id)
 }
 
 // CreateSession creates and returns a new http session model
-func (manager *SessionManager) CreateSession() *Session {
+func (manager *SessionManager) CreateSession(id string) *Session {
 	i := len(manager.Sessions)
 	session := NewSession()
+	session.ID = id
 	manager.Sessions = append(manager.Sessions, session)
 	return manager.Sessions[i]
 }

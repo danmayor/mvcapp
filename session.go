@@ -19,6 +19,7 @@ type Session struct {
 	ID           string
 	CreatedDate  time.Time
 	ActivityDate time.Time
+	Values       map[string]interface{}
 }
 
 // NewSession returns a new Session model
@@ -27,5 +28,6 @@ func NewSession() *Session {
 		ID:           str.Random(32),
 		CreatedDate:  time.Now(),
 		ActivityDate: time.Now(),
+		Values:       make(map[string]interface{}, 0),
 	}
 }

@@ -3,12 +3,14 @@ package mvcapp
 import (
 	"testing"
 	"time"
+
+	"github.com/Digivance/str"
 )
 
 func TestSessionManager(t *testing.T) {
 	mgr := NewSessionManager()
 
-	createdSession := mgr.CreateSession()
+	createdSession := mgr.CreateSession(str.Random(32))
 	if createdSession == nil {
 		t.Error("Failed to test session manager: No session created")
 	}

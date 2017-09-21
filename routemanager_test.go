@@ -1,9 +1,12 @@
-package mvcapp
+package mvcapp_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Digivance/mvcapp"
 )
 
 type TestModel struct {
@@ -12,18 +15,33 @@ type TestModel struct {
 }
 
 type TestController struct {
-	*Controller
+	*mvcapp.Controller
 }
 
-func NewTestController(request *http.Request) IController {
+func NewTestController(request *http.Request) mvcapp.IController {
 	rtn := &TestController{
-		Controller: NewBaseController(request),
+		Controller: mvcapp.NewBaseController(request),
 	}
+
 	rtn.RegisterAction("GET", "Index", rtn.Index)
 	return rtn
 }
 
-func (controller TestController) Index(params []string) IActionResult {
+func (controller TestController) Index(params []string) mvcapp.IActionResult {
+	sid := controller.Session.ID
+	fmt.Println(sid)
+	var saidHello bool
+	if controller.Session.Values["SaidHello"] != nil {
+		saidHello = controller.Session.Values["SaidHello"].(bool)
+	} else {
+		saidHello = false
+	}
+
+	if !saidHello {
+		saidHello = true
+		controller.Session.Values["SaidHello"] = saidHello
+	}
+
 	controller.Cookies = append(controller.Cookies, &http.Cookie{
 		Name:   "Dan",
 		Value:  "is awesome!",
@@ -36,29 +54,28 @@ func (controller TestController) Index(params []string) IActionResult {
 		Welcome: "This message is from the data model!",
 	}
 
-	result := NewViewResult(templates, model)
+	result := mvcapp.NewViewResult(templates, model)
 	result.AddHeader("Framework", "Digivance MVC Application Framework")
 
 	return result
 }
 
 func TestRouteManager(t *testing.T) {
-	mgr := NewRouteManager()
+	mgr := mvcapp.NewRouteManager()
 	mgr.RegisterController("Test", NewTestController)
 
 	request := httptest.NewRequest("GET", "/Test/Index", nil)
 	response := httptest.NewRecorder()
 
 	mgr.HandleRequest(response, request)
+	mgr.HandleRequest(response, request)
 
-	/*
-		fmt.Println(response.Body.String())
+	fmt.Println(response.Body.String())
 
-		res := http.Response{Header: response.Header()}
-		cookies := res.Cookies()
-		name := cookies[0].Name
-		value := cookies[0].Value
+	res := http.Response{Header: response.Header()}
+	cookies := res.Cookies()
+	name := cookies[0].Name
+	value := cookies[0].Value
 
-		fmt.Println(fmt.Sprintf("[%s] = \"%s\"\n", name, value))
-	*/
+	fmt.Println(fmt.Sprintf("[%s] = \"%s\"\n", name, value))
 }
