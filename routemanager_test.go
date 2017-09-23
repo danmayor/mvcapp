@@ -1,23 +1,26 @@
 package mvcapp_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Digivance/mvcapp"
 )
 
+// TestModel is used to test passing a data model to our view result / templates
 type TestModel struct {
 	Title   string
 	Welcome string
 }
 
+// TestController is used to test basic custom controller coding
 type TestController struct {
 	*mvcapp.Controller
 }
 
+// NewTestController is used to test our routing controller creator method
 func NewTestController(request *http.Request) mvcapp.IController {
 	rtn := &TestController{
 		Controller: mvcapp.NewBaseController(request),
@@ -27,21 +30,24 @@ func NewTestController(request *http.Request) mvcapp.IController {
 	return rtn
 }
 
+// Index is used to test our basic action methods
 func (controller TestController) Index(params []string) mvcapp.IActionResult {
-	sid := controller.Session.ID
-	fmt.Println(sid)
-	var saidHello bool
-	if controller.Session.Values["SaidHello"] != nil {
-		saidHello = controller.Session.Values["SaidHello"].(bool)
-	} else {
-		saidHello = false
+	if controller.Session.Values != nil {
+		// Here we test using the controllers' browser session
+		var saidHello bool
+		if controller.Session.Values["SaidHello"] != nil {
+			saidHello = controller.Session.Values["SaidHello"].(bool)
+		} else {
+			saidHello = false
+		}
+
+		if !saidHello {
+			saidHello = true
+			controller.Session.Values["SaidHello"] = saidHello
+		}
 	}
 
-	if !saidHello {
-		saidHello = true
-		controller.Session.Values["SaidHello"] = saidHello
-	}
-
+	// Here we test setting cookies to be passed to the browser
 	controller.Cookies = append(controller.Cookies, &http.Cookie{
 		Name:   "Dan",
 		Value:  "is awesome!",
@@ -60,22 +66,26 @@ func (controller TestController) Index(params []string) mvcapp.IActionResult {
 	return result
 }
 
+// TestRouteManager is our unit test method, it makes 2 requests to test passing cookies
+// and sessions, as well as testing the model rendering in view results.
 func TestRouteManager(t *testing.T) {
 	mgr := mvcapp.NewRouteManager()
+	mgr.SessionManager = mvcapp.NewSessionManager()
 	mgr.RegisterController("Test", NewTestController)
 
-	request := httptest.NewRequest("GET", "/Test/Index", nil)
+	request, err := http.NewRequest("GET", "/Test/Index", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	request.AddCookie(&http.Cookie{
+		Name:    mgr.SessionIDKey,
+		Value:   "EIMA5VQOU4980S35AYPAEKYABL73GZBA",
+		Expires: time.Now().Add(15 * time.Minute),
+	})
+
 	response := httptest.NewRecorder()
 
 	mgr.HandleRequest(response, request)
 	mgr.HandleRequest(response, request)
-
-	fmt.Println(response.Body.String())
-
-	res := http.Response{Header: response.Header()}
-	cookies := res.Cookies()
-	name := cookies[0].Name
-	value := cookies[0].Value
-
-	fmt.Println(fmt.Sprintf("[%s] = \"%s\"\n", name, value))
 }

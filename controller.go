@@ -42,8 +42,8 @@ func NewBaseController(request *http.Request) *Controller {
 		ActionRoutes: make([]*ActionMap, 0),
 	}
 
-	for i, cookie := range request.Cookies() {
-		rtn.Cookies[i] = cookie
+	for _, cookie := range request.Cookies() {
+		rtn.Cookies = append(rtn.Cookies, cookie)
 	}
 
 	return rtn

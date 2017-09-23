@@ -10,6 +10,7 @@ package mvcapp
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Digivance/str"
 )
@@ -22,7 +23,10 @@ type ControllerCreator func(*http.Request) IController
 // RouteManager provides the basic http request pipeline of the
 // mvcapp framework
 type RouteManager struct {
-	SessionIDKey      string
+	// SessionIDKey is the name of the cookie used to define the browser session ID
+	// for incoming requests
+	SessionIDKey string
+
 	DefaultController string
 	DefaultAction     string
 
@@ -31,7 +35,7 @@ type RouteManager struct {
 }
 
 // NewRouteManager returns a new route manager object with default
-// controller and action tokens set to "Home" and "Index"
+// controller and action tokens set to "Home" and "Index".
 func NewRouteManager() *RouteManager {
 	return &RouteManager{
 		SessionIDKey: "MvcApp.SessionID",
@@ -39,8 +43,7 @@ func NewRouteManager() *RouteManager {
 		DefaultController: "Home",
 		DefaultAction:     "Index",
 
-		Routes:         make([]*RouteMap, 0),
-		SessionManager: NewSessionManager(),
+		Routes: make([]*RouteMap, 0),
 	}
 }
 
@@ -80,18 +83,22 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
 
-			// Set Browser Session
-			browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
-			browserSessionID := ""
+			if manager.SessionManager != nil {
+				// Get the browser session ID from the request cookies
+				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
+				browserSessionID := ""
+				if err != nil {
+					browserSessionID = str.Random(32)
+				} else {
+					browserSessionID = browserSessionCookie.Value
+				}
 
-			if err != nil {
-				browserSessionID = str.Random(32)
-			} else {
-				browserSessionID = browserSessionCookie.Value
+				// Get the browserSession from the SessionManager and set
+				// the controllers reference to it
+				browserSession := manager.SessionManager.GetSession(browserSessionID)
+				controller.Session = browserSession
+				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
 			}
-
-			browserSession := manager.SessionManager.GetSession(browserSessionID)
-			controller.Session = browserSession
 
 			// Prepare result
 			result := icontroller.Execute(actionName, params)

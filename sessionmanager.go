@@ -17,13 +17,15 @@ import (
 // SessionManager is the base struct that manages the collection
 // of current http session models.
 type SessionManager struct {
-	Sessions []*Session
+	Sessions       []*Session
+	SessionTimeout time.Duration
 }
 
 // NewSessionManager returns a new Session Manager object
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
-		Sessions: make([]*Session, 0),
+		Sessions:       make([]*Session, 0),
+		SessionTimeout: (900 * time.Second),
 	}
 }
 
@@ -65,19 +67,26 @@ func (manager *SessionManager) SetSession(session *Session) {
 func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
 		if str.Equals(val.ID, id) {
-			manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
+			if key > 0 {
+				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
+			} else {
+				manager.Sessions = manager.Sessions[1:]
+			}
 		}
 	}
 }
 
 // CleanSessions will drop inactive sessions
 func (manager *SessionManager) CleanSessions() {
-	now := time.Now()
-	expires := now.Add(15 * time.Minute)
+	expires := time.Now().Add(manager.SessionTimeout)
 
 	for key, val := range manager.Sessions {
 		if expires.After(val.ActivityDate) {
-			manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
+			if key > 0 {
+				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key+1:]...)
+			} else {
+				manager.Sessions = manager.Sessions[1:]
+			}
 		}
 	}
 }
