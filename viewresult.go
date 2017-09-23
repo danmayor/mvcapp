@@ -1,9 +1,13 @@
 /*
 	Digivance MVC Application Framework
-	View Result Object
+	View Result Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the View Result functionality
+	This file defines the basic functionality of a ViewResult. View results represent a raw
+	content result that is rendered to the browser.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp

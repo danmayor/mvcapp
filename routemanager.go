@@ -3,7 +3,12 @@
 	Route Manager Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the basic route manager functionality
+	This file defines the generic route manager functionality of the MVC application. This manager
+	allows the caller to register route maps and bind the handler method. This system drives the
+	request pipeline of an MVC application made with this framework.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp

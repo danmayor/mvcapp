@@ -3,7 +3,11 @@
 	Action Map Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the action method mapping functionality
+	This file defines functionality for mapping an action method to an http request optionally
+	boud to an http verb.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp

@@ -1,9 +1,13 @@
 /*
 	Digivance MVC Application Framework
-	HTTP Session Manager Features
+	Session Manager Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines http session model manager functionality
+	This file defines functionality for an in process browser session manager system. (E.g. per user
+	server side memory map)
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp

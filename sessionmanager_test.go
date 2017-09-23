@@ -1,3 +1,14 @@
+/*
+	Digivance MVC Application Framework
+	Session Manager Tests
+	Dan Mayor (dmayor@digivance.com)
+
+	This file provides some unit tests for the in memory session manager system.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
+*/
+
 package mvcapp
 
 import (
@@ -7,6 +18,8 @@ import (
 	"github.com/Digivance/str"
 )
 
+// TestSessionManager tests various aspects of the Session Manager. Also demonstrates
+// some of the basic functionality.
 func TestSessionManager(t *testing.T) {
 	mgr := NewSessionManager()
 

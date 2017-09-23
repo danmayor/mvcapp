@@ -1,9 +1,13 @@
 /*
 	Digivance MVC Application Framework
-	Base Controller Feature
+	Base Controller Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the base controller system functionality.
+	This file defines the base controller functionality that the caller will use to derrive
+	their custom controller objects.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -34,6 +38,7 @@ type Controller struct {
 	ActionRoutes []*ActionMap
 }
 
+// NewBaseController returns a reference to a new Base Controller
 func NewBaseController(request *http.Request) *Controller {
 	rtn := &Controller{
 		Session:      &Session{},
@@ -60,7 +65,8 @@ func (controller *Controller) SetRequest(request *http.Request) {
 	controller.Request = request
 }
 
-func (controller *Controller) SetCookie(cookie *http.Cookie) {
+// AddCookie is used to set append a new cookie to this controllers cookie collection
+func (controller *Controller) AddCookie(cookie *http.Cookie) {
 	controller.Cookies = append(controller.Cookies, cookie)
 }
 
@@ -79,6 +85,9 @@ func (controller *Controller) Execute(actionName string, params []string) IActio
 	return NewActionResult([]byte{})
 }
 
+// ToController is a method defined by the controller object (which implements IController) that
+// returns a reference to the Controller object it is called on. We use this in the route manager
+// to gain access to the session and cookie collections of the base controller from a custom controller
 func (controller *Controller) ToController() *Controller {
 	return controller
 }

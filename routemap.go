@@ -1,9 +1,13 @@
 /*
 	Digivance MVC Application Framework
-	Route Map Object
+	Route Mapping Features
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the generic MVC controller route maps
+	This file defines a generic "Route Map". Route maps are intended to define the controller
+	object to be used for requests to the provided controller section of the requested url.
+
+	This package is released under as open source under the LGPL-3.0 which can be found:
+	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
