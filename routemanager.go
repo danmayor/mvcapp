@@ -114,8 +114,12 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 			}
 
 			// Execute the response and return
+			// TODO: Handle Errors here
 			result.Execute(response)
 			return
 		}
 	}
+
+	// TODO:
+	// Handle 404 (No route found)
 }

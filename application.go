@@ -12,24 +12,33 @@
 
 package mvcapp
 
+import (
+	"net/http"
+)
+
 // Application is our global scope object (E.g. application wide configuration
 // and manager systems)
 type Application struct {
-	// SessionKey is the Cookie Name used to store a connections
-	// session ID
-	SessionKey string
+	// SessionManager is our HTTP Session Manager system
+	SessionManager *SessionManager
 
-	// Sessions is our HTTP Session Manager system
-	Sessions *SessionManager
-
-	// Routes is our Route Manager system
-	Routes *RouteManager
+	// RouteManager is our Route Manager system
+	RouteManager *RouteManager
 }
 
 // NewApplication returns a new default MVC Application object
-func NewApplication() Application {
-	return Application{
-		SessionKey: "SessionID",
-		Routes:     NewRouteManager(),
+func NewApplication() *Application {
+	rtn := &Application{
+		SessionManager: NewSessionManager(),
+		RouteManager:   NewRouteManager(),
 	}
+
+	// I know, it's weird... Just roll with it
+	rtn.RouteManager.SessionManager = rtn.SessionManager
+	return rtn
+}
+
+func (app *Application) Run() {
+	http.HandleFunc("/", app.RouteManager.HandleRequest)
+	go http.ListenAndServe(":80", nil)
 }

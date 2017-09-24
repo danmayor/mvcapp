@@ -13,8 +13,10 @@
 package mvcapp
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 )
 
 // ViewResult is a derivitive of the ActionResult struct and
@@ -58,4 +60,46 @@ func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
 	}
 
 	return 200, nil
+}
+
+// MakeTemplateList provides some common view template path fallbacks. Will test
+// if each of the template file names exist as is, if not will try the following
+// 	./Views/template
+// 	./Views/controllerName/template
+// 	./Views/Shared/template
+// 	./Views/Shared/controllerName/template
+func MakeTemplateList(controllerName string, templates []string) []string {
+	rtn := []string{}
+
+	for _, template := range templates {
+		if _, err := os.Stat(template); !os.IsNotExist(err) {
+			rtn = append(rtn, template)
+		} else {
+			// Try /Views/template
+			viewPath := fmt.Sprintf("./Views/%s", template)
+			if _, err := os.Stat(viewPath); !os.IsNotExist(err) {
+				rtn = append(rtn, viewPath)
+			} else {
+				// Try /Views/controllerName/template
+				controllerPath := fmt.Sprintf("./Views/%s/%s", controllerName, template)
+				if _, err := os.Stat(controllerPath); !os.IsNotExist(err) {
+					rtn = append(rtn, controllerPath)
+				} else {
+					// Try /Views/Shared/template
+					sharedPath := fmt.Sprintf("./Views/Shared/%s", template)
+					if _, err := os.Stat(sharedPath); !os.IsNotExist(err) {
+						rtn = append(rtn, sharedPath)
+					} else {
+						// Try /Views/Shared/controllerName/template
+						sharedControllerPath := fmt.Sprintf("./Views/Shared/%s/%s", controllerName, template)
+						if _, err := os.Stat(sharedControllerPath); !os.IsNotExist(err) {
+							rtn = append(rtn, sharedControllerPath)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return rtn
 }
