@@ -61,32 +61,20 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
-	parts := str.Split(request.URL.EscapedPath(), '/')
-
-	controllerName := manager.DefaultController
-	actionName := manager.DefaultAction
-	params := []string{}
-
-	if len(parts) > 2 {
-		controllerName = parts[0]
-		actionName = parts[1]
-		params = parts[2:]
-	} else {
-		if len(parts) >= 2 {
-			controllerName = parts[0]
-			actionName = parts[1]
-		} else {
-			if len(parts) == 1 {
-				controllerName = parts[0]
-			}
-		}
-	}
+	fragment, url := manager.parseFragment(request.URL.EscapedPath())
+	path, queryString := manager.parseQueryString(url)
+	controllerName := manager.parseControllerName(path)
 
 	for _, route := range manager.Routes {
-		if str.Compare(controllerName, route.ControllerName) {
+		if str.StartsWith(route.ControllerName, controllerName) {
 			// Construct the appropriate controller
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
+
+			controller.DefaultAction = manager.DefaultAction
+			controller.RequestedPath = path
+			controller.QueryString = queryString
+			controller.Fragment = fragment
 
 			if manager.SessionManager != nil {
 				// Get the browser session ID from the request cookies
@@ -106,7 +94,7 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 			}
 
 			// Prepare result
-			result := icontroller.Execute(actionName, params)
+			result := icontroller.Execute()
 
 			// Write controllers cookies
 			for _, cookie := range controller.Cookies {
@@ -122,4 +110,57 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 	// TODO:
 	// Handle 404 (No route found)
+}
+
+// parseFragment will extract, and remove the fragment (or named anchor) section
+// of the url. Returns strings representing the fragment and the url without it
+func (manager *RouteManager) parseFragment(url string) (string, string) {
+	fragment := ""
+
+	if str.Contains(url, "#") {
+		fragment = str.RightOf(url, "#")
+		url = str.LeftOf(url, "#")
+	}
+
+	return fragment, url
+}
+
+// parseQueryString will extract the path and parse the query string key value pairs.
+// Returns the path (relative to the app's domain) and a map of the query string pairs.
+func (manager *RouteManager) parseQueryString(url string) (string, map[string]string) {
+	path := ""
+	queryString := map[string]string{}
+
+	if str.Contains(url, "?") {
+		path = str.LeftOf(url, "?")
+		qsLine := str.RightOf(url, "?")
+
+		for _, pair := range str.Split(qsLine, '&') {
+			kvp := str.Split(pair, '=')
+			if len(kvp) > 1 {
+				queryString[kvp[0]] = kvp[1]
+			}
+
+			if len(kvp) == 1 {
+				queryString[kvp[0]] = ""
+			}
+		}
+	} else {
+		path = url
+	}
+
+	return path, queryString
+}
+
+// parseControllerName returns the controller name requested, will fallback and return
+// the default controller if this is a root request.
+func (manager *RouteManager) parseControllerName(path string) string {
+	rtn := manager.DefaultController
+	parts := str.Split(path, '/')
+
+	if len(parts) > 0 {
+		rtn = parts[0]
+	}
+
+	return rtn
 }

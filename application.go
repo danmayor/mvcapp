@@ -38,7 +38,8 @@ func NewApplication() *Application {
 	return rtn
 }
 
+// Run is used to execute this MVC Application
 func (app *Application) Run() {
 	http.HandleFunc("/", app.RouteManager.HandleRequest)
-	go http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":80", nil)
 }

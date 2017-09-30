@@ -84,7 +84,7 @@ func TestRouteManager(t *testing.T) {
 	mgr.SessionManager = mvcapp.NewSessionManager()
 	mgr.RegisterController("Test", NewTestController)
 
-	request, err := http.NewRequest("GET", "/Test/Index", nil)
+	request, err := http.NewRequest("GET", "/Test", nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

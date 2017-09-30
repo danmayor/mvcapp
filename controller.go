@@ -22,7 +22,7 @@ import (
 // need to be implemented by all controllers
 type IController interface {
 	RegisterAction(string, string, ActionMethod)
-	Execute(string, []string) IActionResult
+	Execute() IActionResult
 	SetRequest(*http.Request)
 	ToController() *Controller
 }
@@ -32,19 +32,31 @@ type IController interface {
 type Controller struct {
 	IController
 
-	Session      *Session
-	Cookies      []*http.Cookie
-	Request      *http.Request
-	ActionRoutes []*ActionMap
+	Request *http.Request
+	Session *Session
+	Cookies []*http.Cookie
+
+	RequestedPath string
+	QueryString   map[string]string
+	Fragment      string
+
+	DefaultAction string
+	ActionRoutes  []*ActionMap
 }
 
 // NewBaseController returns a reference to a new Base Controller
 func NewBaseController(request *http.Request) *Controller {
 	rtn := &Controller{
-		Session:      &Session{},
-		Cookies:      make([]*http.Cookie, 0),
-		Request:      request,
-		ActionRoutes: make([]*ActionMap, 0),
+		Request: request,
+		Session: &Session{},
+		Cookies: make([]*http.Cookie, 0),
+
+		RequestedPath: "",
+		QueryString:   map[string]string{},
+		Fragment:      "",
+
+		DefaultAction: "",
+		ActionRoutes:  make([]*ActionMap, 0),
 	}
 
 	for _, cookie := range request.Cookies() {
@@ -70,10 +82,23 @@ func (controller *Controller) AddCookie(cookie *http.Cookie) {
 	controller.Cookies = append(controller.Cookies, cookie)
 }
 
-// Execute the route manager to call the action method mapped to the provided
-// actionName. params is the remainder of the url split by / represented as strings
-func (controller *Controller) Execute(actionName string, params []string) IActionResult {
+// Execute is called by the route manager instructing this controller to respond
+func (controller *Controller) Execute() IActionResult {
 	verb := controller.Request.Method
+	actionName := controller.DefaultAction
+	params := []string{}
+
+	if str.Contains(controller.RequestedPath, "/") {
+		parts := str.Split(controller.RequestedPath, '/')
+
+		if len(parts) > 1 {
+			actionName = parts[1]
+
+			if len(parts) > 2 {
+				params = parts[2:]
+			}
+		}
+	}
 
 	for _, actionMethod := range controller.ActionRoutes {
 		if str.Compare(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || str.Compare(actionMethod.Verb, verb)) {
