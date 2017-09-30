@@ -122,7 +122,7 @@ func (manager *RouteManager) parseControllerName(path string) string {
 }
 
 func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
-	fragment, url := manager.parseFragment(request.URL.EscapedPath())
+	fragment, url := manager.parseFragment(request.URL.Path)
 	path, queryString := manager.parseQueryString(url)
 	controllerName := manager.parseControllerName(path)
 
@@ -181,7 +181,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 }
 
 func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) {
-	_, url := manager.parseFragment(request.URL.EscapedPath())
+	_, url := manager.parseFragment(request.URL.Path)
 	path, _ := manager.parseQueryString(url)
 
 	if str.StartsWith(path, "/") {
