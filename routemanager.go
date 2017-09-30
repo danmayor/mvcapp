@@ -14,7 +14,6 @@
 package mvcapp
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -181,6 +180,27 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 		path = path[1:]
 	}
 
-	fmt.Println(path)
-	http.ServeFile(response, request, path)
+	if validPath(path) {
+		http.ServeFile(response, request, path)
+	}
+}
+
+func validPath(path string) bool {
+	if str.StartsWith(path, "controllers/") {
+		return false
+	}
+
+	if str.StartsWith(path, "models/") {
+		return false
+	}
+
+	if str.StartsWith(path, "views/") {
+		return false
+	}
+
+	if !str.Contains(path, "/") {
+		return false
+	}
+
+	return true
 }
