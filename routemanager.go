@@ -14,6 +14,7 @@
 package mvcapp
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -61,55 +62,11 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
-	fragment, url := manager.parseFragment(request.URL.EscapedPath())
-	path, queryString := manager.parseQueryString(url)
-	controllerName := manager.parseControllerName(path)
-
-	for _, route := range manager.Routes {
-		if str.StartsWith(route.ControllerName, controllerName) {
-			// Construct the appropriate controller
-			icontroller := route.CreateController(request)
-			controller := icontroller.ToController()
-
-			controller.DefaultAction = manager.DefaultAction
-			controller.RequestedPath = path
-			controller.QueryString = queryString
-			controller.Fragment = fragment
-
-			if manager.SessionManager != nil {
-				// Get the browser session ID from the request cookies
-				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
-				browserSessionID := ""
-				if err != nil {
-					browserSessionID = str.Random(32)
-				} else {
-					browserSessionID = browserSessionCookie.Value
-				}
-
-				// Get the browserSession from the SessionManager and set
-				// the controllers reference to it
-				browserSession := manager.SessionManager.GetSession(browserSessionID)
-				controller.Session = browserSession
-				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
-			}
-
-			// Prepare result
-			result := icontroller.Execute()
-
-			// Write controllers cookies
-			for _, cookie := range controller.Cookies {
-				http.SetCookie(response, cookie)
-			}
-
-			// Execute the response and return
-			// TODO: Handle Errors here
-			result.Execute(response)
-			return
-		}
+	if manager.handleController(response, request) {
+		return
 	}
 
-	// TODO:
-	// Handle 404 (No route found)
+	manager.handleFile(response, request)
 }
 
 // parseFragment will extract, and remove the fragment (or named anchor) section
@@ -163,4 +120,67 @@ func (manager *RouteManager) parseControllerName(path string) string {
 	}
 
 	return rtn
+}
+
+func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
+	fragment, url := manager.parseFragment(request.URL.EscapedPath())
+	path, queryString := manager.parseQueryString(url)
+	controllerName := manager.parseControllerName(path)
+
+	for _, route := range manager.Routes {
+		if str.StartsWith(route.ControllerName, controllerName) {
+			// Construct the appropriate controller
+			icontroller := route.CreateController(request)
+			controller := icontroller.ToController()
+
+			controller.DefaultAction = manager.DefaultAction
+			controller.RequestedPath = path
+			controller.QueryString = queryString
+			controller.Fragment = fragment
+
+			if manager.SessionManager != nil {
+				// Get the browser session ID from the request cookies
+				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
+				browserSessionID := ""
+				if err != nil {
+					browserSessionID = str.Random(32)
+				} else {
+					browserSessionID = browserSessionCookie.Value
+				}
+
+				// Get the browserSession from the SessionManager and set
+				// the controllers reference to it
+				browserSession := manager.SessionManager.GetSession(browserSessionID)
+				controller.Session = browserSession
+				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
+			}
+
+			// Prepare result
+			result := icontroller.Execute()
+
+			// Write controllers cookies
+			for _, cookie := range controller.Cookies {
+				http.SetCookie(response, cookie)
+			}
+
+			// Execute the response and return
+			// TODO: Handle Errors here
+			result.Execute(response)
+			return true
+		}
+	}
+
+	return false
+}
+
+func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) {
+	_, url := manager.parseFragment(request.URL.EscapedPath())
+	path, _ := manager.parseQueryString(url)
+
+	if str.StartsWith(path, "/") {
+		path = path[1:]
+	}
+
+	fmt.Println(path)
+	http.ServeFile(response, request, path)
 }

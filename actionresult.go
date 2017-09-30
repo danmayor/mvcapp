@@ -22,14 +22,22 @@ type IActionResult interface {
 // method and provides the Data []byte member
 type ActionResult struct {
 	IActionResult
-	Data []byte
+
+	Headers map[string]string
+	Data    []byte
 }
 
 // NewActionResult returns a new action result populated with the provided data
 func NewActionResult(data []byte) *ActionResult {
 	return &ActionResult{
-		Data: data,
+		Data:    data,
+		Headers: map[string]string{},
 	}
+}
+
+// AddHeader adds an http header key value pair combination to the result
+func (result *ActionResult) AddHeader(key string, val string) {
+	result.Headers[key] = val
 }
 
 // Execute writes the raw data to the client

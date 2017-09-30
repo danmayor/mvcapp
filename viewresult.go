@@ -23,25 +23,20 @@ import (
 // is used to render a template to the client as html
 type ViewResult struct {
 	IActionResult
+	*ActionResult
 
-	Headers   map[string]string
-	Templates []string
 	Model     interface{}
+	Templates []string
 }
 
 // NewViewResult returns a new ViewResult struct with the Data
 // member set to the compiled templates requested
 func NewViewResult(templates []string, model interface{}) *ViewResult {
 	return &ViewResult{
-		Headers:   map[string]string{},
-		Templates: templates,
-		Model:     model,
+		ActionResult: NewActionResult([]byte{}),
+		Templates:    templates,
+		Model:        model,
 	}
-}
-
-// AddHeader adds an http header key value pair combination to the result
-func (result *ViewResult) AddHeader(key string, val string) {
-	result.Headers[key] = val
 }
 
 // Execute will compile and execute the templates requested with the provided model
