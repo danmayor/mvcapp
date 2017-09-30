@@ -18,6 +18,8 @@ import (
 	"github.com/Digivance/str"
 )
 
+type ControllerCallback func()
+
 // IController defines the RegisterAction and Execute methods that
 // need to be implemented by all controllers
 type IController interface {
@@ -42,6 +44,9 @@ type Controller struct {
 
 	DefaultAction string
 	ActionRoutes  []*ActionMap
+
+	BeforeExecute ControllerCallback
+	AfterExecute  ControllerCallback
 }
 
 // NewBaseController returns a reference to a new Base Controller

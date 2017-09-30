@@ -155,7 +155,15 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 			}
 
 			// Prepare result
+			if controller.BeforeExecute != nil {
+				controller.BeforeExecute()
+			}
+
 			result := icontroller.Execute()
+
+			if controller.AfterExecute != nil {
+				controller.AfterExecute()
+			}
 
 			// Write controllers cookies
 			for _, cookie := range controller.Cookies {
