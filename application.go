@@ -39,7 +39,29 @@ func NewApplication() *Application {
 }
 
 // Run is used to execute this MVC Application
-func (app *Application) Run() {
-	http.HandleFunc("/", app.RouteManager.HandleRequest)
-	http.ListenAndServe(":80", nil)
+func (app *Application) Run() error {
+	return http.ListenAndServe(":80", http.HandlerFunc(app.RouteManager.HandleRequest))
+}
+
+// RunSecure is used to execute this MVC Application over HTTPS/TLS
+func (app *Application) RunSecure(certFile string, keyFile string) error {
+	return http.ListenAndServeTLS(":443", certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+}
+
+// RunForcedSecure is used to execute this MVC Application in both HTTP and
+// HTTPS/TLS modes, the HTTP mode will force redirection to HTTPS only.
+func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
+	go http.ListenAndServe(":80", http.HandlerFunc(redirect))
+	return http.ListenAndServeTLS(":443", certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+}
+
+// redirect is used internally to submit an http redirect from http to https
+func redirect(w http.ResponseWriter, req *http.Request) {
+	target := "https://" + req.Host + req.URL.Path
+
+	if len(req.URL.RawQuery) > 0 {
+		target += "?" + req.URL.RawQuery
+	}
+
+	http.Redirect(w, req, target, http.StatusTemporaryRedirect)
 }
