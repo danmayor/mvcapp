@@ -17,6 +17,8 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+
+	"github.com/Digivance/str"
 )
 
 // ViewResult is a derivitive of the ActionResult struct and
@@ -41,7 +43,13 @@ func NewViewResult(templates []string, model interface{}) *ViewResult {
 
 // Execute will compile and execute the templates requested with the provided model
 func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
-	page, err := template.ParseFiles(result.Templates...)
+	funcMap := template.FuncMap{
+		"ToUpper": str.ToUpper,
+		"ToLower": str.ToLower,
+	}
+
+	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(result.Templates...)
+
 	if err != nil {
 		return 500, err
 	}
