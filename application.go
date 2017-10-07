@@ -13,6 +13,7 @@
 package mvcapp
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -24,6 +25,10 @@ type Application struct {
 
 	// RouteManager is our Route Manager system
 	RouteManager *RouteManager
+
+	BindAddress string
+	HTTPPort    int
+	HTTPSPort   int
 }
 
 // NewApplication returns a new default MVC Application object
@@ -31,6 +36,9 @@ func NewApplication() *Application {
 	rtn := &Application{
 		SessionManager: NewSessionManager(),
 		RouteManager:   NewRouteManager(),
+		BindAddress:    "",
+		HTTPPort:       80,
+		HTTPSPort:      443,
 	}
 
 	// I know, it's weird... Just roll with it
@@ -40,19 +48,24 @@ func NewApplication() *Application {
 
 // Run is used to execute this MVC Application
 func (app *Application) Run() error {
-	return http.ListenAndServe(":80", http.HandlerFunc(app.RouteManager.HandleRequest))
+	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
+	return http.ListenAndServe(addr, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
 // RunSecure is used to execute this MVC Application over HTTPS/TLS
 func (app *Application) RunSecure(certFile string, keyFile string) error {
-	return http.ListenAndServeTLS(":443", certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
+	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
 // RunForcedSecure is used to execute this MVC Application in both HTTP and
 // HTTPS/TLS modes, the HTTP mode will force redirection to HTTPS only.
 func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
-	go http.ListenAndServe(":80", http.HandlerFunc(redirect))
-	return http.ListenAndServeTLS(":443", certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
+	go http.ListenAndServe(addr, http.HandlerFunc(redirect))
+
+	addr = fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
+	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
 // redirect is used internally to submit an http redirect from http to https
