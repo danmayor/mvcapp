@@ -14,7 +14,9 @@ package mvcapp
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/http/fcgi"
 )
 
 // Application is our global scope object (E.g. application wide configuration
@@ -46,20 +48,38 @@ func NewApplication() *Application {
 	return rtn
 }
 
-// Run is used to execute this MVC Application
+// ServeHTTP is used for fastcgi passthrough, is hot literally bound
+// to the golang http.listen
+func (app *Application) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	app.RouteManager.HandleRequest(response, request)
+}
+
+// RunFastCGI binds to 127.0.0.1:<HTTPPort> and routes to our RouteManager
+// Request Handler method via the Application ServeHTTP method
+func (app *Application) RunFastCGI() error {
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", app.HTTPPort))
+	if err != nil {
+		return err
+	}
+
+	return fcgi.Serve(listener, app)
+}
+
+// Run is used to execute this MVC Application (direct http socket server)
 func (app *Application) Run() error {
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
 	return http.ListenAndServe(addr, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
-// RunSecure is used to execute this MVC Application over HTTPS/TLS
+// RunSecure is used to execute this MVC Application over HTTPS/TLS (direct https socket server)
 func (app *Application) RunSecure(certFile string, keyFile string) error {
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
 	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
 // RunForcedSecure is used to execute this MVC Application in both HTTP and
-// HTTPS/TLS modes, the HTTP mode will force redirection to HTTPS only.
+// HTTPS/TLS modes, the HTTP mode will force redirection to HTTPS only. (direct http and https
+// socket servers)
 func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
 	go http.ListenAndServe(addr, http.HandlerFunc(redirect))
@@ -68,7 +88,8 @@ func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
 	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
 }
 
-// redirect is used internally to submit an http redirect from http to https
+// redirect is used internally to submit an http redirect from http to https when
+// forcing secure
 func redirect(w http.ResponseWriter, req *http.Request) {
 	target := "https://" + req.Host + req.URL.Path
 
