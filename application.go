@@ -14,9 +14,7 @@ package mvcapp
 
 import (
 	"fmt"
-	"net"
 	"net/http"
-	"net/http/fcgi"
 )
 
 // Application is our global scope object (E.g. application wide configuration
@@ -46,23 +44,6 @@ func NewApplication() *Application {
 	// I know, it's weird... Just roll with it
 	rtn.RouteManager.SessionManager = rtn.SessionManager
 	return rtn
-}
-
-// ServeHTTP is used for fastcgi passthrough, is hot literally bound
-// to the golang http.listen
-func (app *Application) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	app.RouteManager.HandleRequest(response, request)
-}
-
-// RunFastCGI binds to 127.0.0.1:<HTTPPort> and routes to our RouteManager
-// Request Handler method via the Application ServeHTTP method
-func (app *Application) RunFastCGI() error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", app.HTTPPort))
-	if err != nil {
-		return err
-	}
-
-	return fcgi.Serve(listener, app)
 }
 
 // Run is used to execute this MVC Application (direct http socket server)
