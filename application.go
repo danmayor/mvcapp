@@ -15,6 +15,8 @@ package mvcapp
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // Application is our global scope object (E.g. application wide configuration
@@ -79,4 +81,21 @@ func redirect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	http.Redirect(w, req, target, http.StatusTemporaryRedirect)
+}
+
+var appPath = ""
+
+// GetApplicationPath should return the full path to the executable.
+// This is the root of the site and where the assembly file is
+func GetApplicationPath() string {
+	if appPath == "" {
+		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			appPath = "."
+		}
+
+		appPath = dir
+	}
+
+	return appPath
 }

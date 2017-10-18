@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Digivance/applog"
 	"github.com/Digivance/str"
 )
 
@@ -51,6 +52,9 @@ func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
 	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(result.Templates...)
 
 	if err != nil {
+		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
+		response.WriteHeader(500)
+		// TODO: Add 500 page here
 		return 500, err
 	}
 
@@ -59,6 +63,9 @@ func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
 	}
 
 	if err = page.ExecuteTemplate(response, "mvcapp", result.Model); err != nil {
+		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
+		response.WriteHeader(500)
+		// TODO: Add 500 page here
 		return 500, err
 	}
 
@@ -80,24 +87,26 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 			rtn = append(rtn, template)
 		} else {
 			// Try /views/template
-			viewPath := fmt.Sprintf("./views/%s", template)
+			viewPath := fmt.Sprintf("%s/views/%s", GetApplicationPath(), template)
 			if _, err := os.Stat(viewPath); !os.IsNotExist(err) {
 				rtn = append(rtn, viewPath)
 			} else {
 				// Try /Views/controllerName/template
-				controllerPath := fmt.Sprintf("./views/%s/%s", controllerName, template)
+				controllerPath := fmt.Sprintf("%s/views/%s/%s", GetApplicationPath(), controllerName, template)
 				if _, err := os.Stat(controllerPath); !os.IsNotExist(err) {
 					rtn = append(rtn, controllerPath)
 				} else {
 					// Try /views/shared/template
-					sharedPath := fmt.Sprintf("./views/shared/%s", template)
+					sharedPath := fmt.Sprintf("%s/views/shared/%s", GetApplicationPath(), template)
 					if _, err := os.Stat(sharedPath); !os.IsNotExist(err) {
 						rtn = append(rtn, sharedPath)
 					} else {
 						// Try /views/shared/controllerName/template
-						sharedControllerPath := fmt.Sprintf("./views/shared/%s/%s", controllerName, template)
+						sharedControllerPath := fmt.Sprintf("%s/views/shared/%s/%s", GetApplicationPath(), controllerName, template)
 						if _, err := os.Stat(sharedControllerPath); !os.IsNotExist(err) {
 							rtn = append(rtn, sharedControllerPath)
+						} else {
+							// TODO: Add 404 page here
 						}
 					}
 				}

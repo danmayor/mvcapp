@@ -14,6 +14,7 @@
 package mvcapp
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -171,7 +172,6 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 			}
 
 			// Execute the response and return
-			// TODO: Handle Errors here
 			result.Execute(response)
 			return true
 		}
@@ -185,7 +185,7 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 	path, _ := manager.parseQueryString(url)
 
 	if str.StartsWith(path, "/") {
-		path = path[1:]
+		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
 	}
 
 	if validPath(path) {
