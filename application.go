@@ -102,7 +102,7 @@ func (app *Application) RedirectSecure(w http.ResponseWriter, req *http.Request)
 
 // RedirectSecureJS is used to submit a javascript redirect from http to https when forcing secure
 func (app *Application) RedirectSecureJS(w http.ResponseWriter, req *http.Request) {
-	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='https://%s%s';</script></body>", app.DomainName, req.URL.Path)
+	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body>window.location.href='https://%s%s';</body>", app.DomainName, req.URL.Path)
 	w.Write([]byte(data))
 }
 
