@@ -16,8 +16,10 @@ package mvcapp
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/Digivance/applog"
 	"github.com/Digivance/str"
 )
 
@@ -29,8 +31,6 @@ type ControllerCreator func(*http.Request) IController
 // RouteManager provides the basic http request pipeline of the
 // mvcapp framework
 type RouteManager struct {
-	// SessionIDKey is the name of the cookie used to define the browser session ID
-	// for incoming requests
 	SessionIDKey string
 
 	DefaultController string
@@ -122,6 +122,10 @@ func (manager *RouteManager) parseControllerName(path string) string {
 	return rtn
 }
 
+// handleController is used to attempt to handle a request through an mvcapp controller
+// pipeline. (E.g. controller.BeforeExecute, controller.Execute, writes the header with
+// the controller.HTTPStatusCode and then executes the ActionResult (to deliver the payload)
+// and finally the controller.AfterExecute
 func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
 	fragment, url := manager.parseFragment(request.URL.Path)
 	path, queryString := manager.parseQueryString(url)
@@ -155,6 +159,11 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
 			}
 
+			// Write controllers cookies
+			for _, cookie := range controller.Cookies {
+				http.SetCookie(response, cookie)
+			}
+
 			// Prepare result
 			if controller.BeforeExecute != nil {
 				controller.BeforeExecute()
@@ -162,17 +171,45 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 
 			result := icontroller.Execute()
 
+			if result == nil {
+				if controller.NotFoundResult != nil {
+					result = controller.NotFoundResult(response, controller.RequestedPath)
+				} else {
+					result = controller.DefaultNotFoundPage()
+				}
+			}
+
+			if err := result.Execute(response); err != nil {
+				msg := err.Error()
+				if str.Compare(msg, "No response from request") {
+					if controller.NotFoundResult != nil {
+						result = controller.NotFoundResult(response, controller.RequestedPath)
+					} else {
+						result = controller.DefaultNotFoundPage()
+					}
+
+					if err = result.Execute(response); err != nil {
+						applog.WriteError("Failed to display default 404 page!", err)
+						response.WriteHeader(404)
+					}
+				} else {
+					if controller.ErrorResult != nil {
+						result = controller.ErrorResult(response, err)
+					} else {
+						result = controller.DefaultErrorPage(err)
+					}
+
+					if err = result.Execute(response); err != nil {
+						applog.WriteError("Failed to display default error page!", err)
+						response.WriteHeader(500)
+					}
+				}
+			}
+
 			if controller.AfterExecute != nil {
 				controller.AfterExecute()
 			}
 
-			// Write controllers cookies
-			for _, cookie := range controller.Cookies {
-				http.SetCookie(response, cookie)
-			}
-
-			// Execute the response and return
-			result.Execute(response)
 			return true
 		}
 	}
@@ -180,6 +217,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 	return false
 }
 
+// handleFile is called if handleController is false and will attempt to serve a raw file
 func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) {
 	_, url := manager.parseFragment(request.URL.Path)
 	path, _ := manager.parseQueryString(url)
@@ -188,11 +226,31 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
 	}
 
-	if validPath(path) {
-		http.ServeFile(response, request, path)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		for _, route := range manager.Routes {
+			if str.StartsWith(route.ControllerName, manager.DefaultController) {
+				controller := route.CreateController(request).ToController()
+				if controller.NotFoundResult != nil {
+					result := controller.NotFoundResult(response, url)
+					if err := result.Execute(response); err != nil {
+						response.WriteHeader(404)
+					}
+				} else {
+					result := controller.DefaultNotFoundPage()
+					if err := result.Execute(response); err != nil {
+						response.WriteHeader(404)
+					}
+				}
+			}
+		}
+	} else {
+		if validPath(path) {
+			http.ServeFile(response, request, path)
+		}
 	}
 }
 
+// validPath is used internally to ignore paths that are used by the mvcapp system
 func validPath(path string) bool {
 	if str.StartsWith(path, "controllers/") {
 		return false

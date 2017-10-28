@@ -43,7 +43,7 @@ func NewViewResult(templates []string, model interface{}) *ViewResult {
 }
 
 // Execute will compile and execute the templates requested with the provided model
-func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
+func (result *ViewResult) Execute(response http.ResponseWriter) error {
 	funcMap := template.FuncMap{
 		"ToUpper": str.ToUpper,
 		"ToLower": str.ToLower,
@@ -53,9 +53,7 @@ func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
 
 	if err != nil {
 		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
-		response.WriteHeader(500)
-		// TODO: Add 500 page here
-		return 500, err
+		return err
 	}
 
 	for k, v := range result.Headers {
@@ -64,12 +62,49 @@ func (result *ViewResult) Execute(response http.ResponseWriter) (int, error) {
 
 	if err = page.ExecuteTemplate(response, "mvcapp", result.Model); err != nil {
 		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
-		response.WriteHeader(500)
-		// TODO: Add 500 page here
-		return 500, err
+		return err
 	}
 
-	return 200, nil
+	return nil
+}
+
+// ToActionResult returns a pointer to the base action result class
+func (result *ViewResult) ToActionResult() *ActionResult {
+	return result.ActionResult
+}
+
+// TemplateExists checks the standard folder paths based on the provided controllerName
+// to see if the template file can be found. (See MakeTemplateList for path structure)
+func TemplateExists(controllerName string, template string) bool {
+	if _, err := os.Stat(template); !os.IsNotExist(err) {
+		return true
+	}
+
+	// Try /views/template
+	viewPath := fmt.Sprintf("%s/views/%s", GetApplicationPath(), template)
+	if _, err := os.Stat(viewPath); !os.IsNotExist(err) {
+		return true
+	}
+
+	// Try /Views/controllerName/template
+	controllerPath := fmt.Sprintf("%s/views/%s/%s", GetApplicationPath(), controllerName, template)
+	if _, err := os.Stat(controllerPath); !os.IsNotExist(err) {
+		return true
+	}
+
+	// Try /views/shared/template
+	sharedPath := fmt.Sprintf("%s/views/shared/%s", GetApplicationPath(), template)
+	if _, err := os.Stat(sharedPath); !os.IsNotExist(err) {
+		return true
+	}
+
+	// Try /views/shared/controllerName/template
+	sharedControllerPath := fmt.Sprintf("%s/views/shared/%s/%s", GetApplicationPath(), controllerName, template)
+	if _, err := os.Stat(sharedControllerPath); !os.IsNotExist(err) {
+		return true
+	}
+
+	return false
 }
 
 // MakeTemplateList provides some common view template path fallbacks. Will test

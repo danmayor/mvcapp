@@ -15,7 +15,8 @@ import (
 
 // IActionResult is used internally to require the execute method
 type IActionResult interface {
-	Execute(http.ResponseWriter) (int, error)
+	Execute(http.ResponseWriter) error
+	ToActionResult() *ActionResult
 }
 
 // ActionResult is a base level struct that implements the Execute
@@ -41,11 +42,16 @@ func (result *ActionResult) AddHeader(key string, val string) {
 }
 
 // Execute writes the raw data to the client
-func (result ActionResult) Execute(response http.ResponseWriter) (int, error) {
+func (result ActionResult) Execute(response http.ResponseWriter) error {
 	if len(result.Data) <= 0 {
-		return 404, errors.New("No response from request")
+		return errors.New("No response from request")
 	}
 
 	response.Write(result.Data)
-	return 200, nil
+	return nil
+}
+
+// ToActionResult returns a pointer to the base action result struct
+func (result *ActionResult) ToActionResult() *ActionResult {
+	return result
 }

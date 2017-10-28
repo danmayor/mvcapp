@@ -13,12 +13,18 @@
 package mvcapp
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Digivance/str"
 )
 
+// ControllerCallback is a simple declaration to provide a callback method
+// members (e.g. variables that point to methods to be executed)
 type ControllerCallback func()
+
+type ErrorResultCallback func(response http.ResponseWriter, err error) IActionResult
+type NotFoundResultCallback func(response http.ResponseWriter, url string) IActionResult
 
 // IController defines the RegisterAction and Execute methods that
 // need to be implemented by all controllers
@@ -34,9 +40,10 @@ type IController interface {
 type Controller struct {
 	IController
 
-	Request *http.Request
-	Session *Session
-	Cookies []*http.Cookie
+	Request        *http.Request
+	Session        *Session
+	Cookies        []*http.Cookie
+	HTTPStatusCode int
 
 	RequestedPath string
 	QueryString   map[string]string
@@ -47,16 +54,20 @@ type Controller struct {
 
 	BeforeExecute ControllerCallback
 	AfterExecute  ControllerCallback
+
+	ErrorResult    ErrorResultCallback
+	NotFoundResult NotFoundResultCallback
 }
 
 // NewBaseController returns a reference to a new Base Controller
 func NewBaseController(request *http.Request) *Controller {
 	rtn := &Controller{
-		Request: request,
-		Session: &Session{},
-		Cookies: make([]*http.Cookie, 0),
+		Request:        request,
+		Session:        &Session{},
+		Cookies:        make([]*http.Cookie, 0),
+		HTTPStatusCode: 200,
 
-		RequestedPath: "",
+		RequestedPath: request.URL.Path,
 		QueryString:   map[string]string{},
 		Fragment:      "",
 
@@ -120,4 +131,21 @@ func (controller *Controller) Execute() IActionResult {
 // to gain access to the session and cookie collections of the base controller from a custom controller
 func (controller *Controller) ToController() *Controller {
 	return controller
+}
+
+// DefaultErrorPage will attempt to render the built in error page
+func (controller *Controller) DefaultErrorPage(err error) IActionResult {
+	controller.HTTPStatusCode = 500
+	html := fmt.Sprintf("<html><head><title>Server Error</title></head><body><h1>Server Error :(</h1>%s</body></html>", err.Error())
+	data := []byte(html)
+	return NewActionResult(data)
+}
+
+// DefaultNotFoundPage will attempt to render the built in 404 page
+func (controller *Controller) DefaultNotFoundPage() IActionResult {
+	controller.HTTPStatusCode = 404
+	url := controller.RequestedPath
+	html := fmt.Sprintf("<html><head><title>Content Not Found</title></head><body><h1>Content Missing</h1>We're sorry, we could not find '%s' from this app :(</body></html>", url)
+	data := []byte(html)
+	return NewActionResult(data)
 }
