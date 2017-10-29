@@ -173,7 +173,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 
 			if result == nil {
 				if controller.NotFoundResult != nil {
-					result = controller.NotFoundResult(response, controller.RequestedPath)
+					result = controller.NotFoundResult(controller.RequestedPath)
 				} else {
 					result = controller.DefaultNotFoundPage()
 				}
@@ -183,7 +183,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				msg := err.Error()
 				if str.Compare(msg, "No response from request") {
 					if controller.NotFoundResult != nil {
-						result = controller.NotFoundResult(response, controller.RequestedPath)
+						result = controller.NotFoundResult(controller.RequestedPath)
 					} else {
 						result = controller.DefaultNotFoundPage()
 					}
@@ -194,7 +194,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 					}
 				} else {
 					if controller.ErrorResult != nil {
-						result = controller.ErrorResult(response, err)
+						result = controller.ErrorResult(err)
 					} else {
 						result = controller.DefaultErrorPage(err)
 					}
@@ -231,7 +231,7 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 			if str.StartsWith(route.ControllerName, manager.DefaultController) {
 				controller := route.CreateController(request).ToController()
 				if controller.NotFoundResult != nil {
-					result := controller.NotFoundResult(response, url)
+					result := controller.NotFoundResult(url)
 					if err := result.Execute(response); err != nil {
 						response.WriteHeader(404)
 					}

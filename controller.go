@@ -23,8 +23,8 @@ import (
 // members (e.g. variables that point to methods to be executed)
 type ControllerCallback func()
 
-type ErrorResultCallback func(response http.ResponseWriter, err error) IActionResult
-type NotFoundResultCallback func(response http.ResponseWriter, url string) IActionResult
+type ErrorResultCallback func(err error) IActionResult
+type NotFoundResultCallback func(url string) IActionResult
 
 // IController defines the RegisterAction and Execute methods that
 // need to be implemented by all controllers
