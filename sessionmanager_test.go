@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Digivance/str"
+	"github.com/digivance/str"
 )
 
 // TestSessionManager tests various aspects of the Session Manager. Also demonstrates

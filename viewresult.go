@@ -18,8 +18,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Digivance/applog"
-	"github.com/Digivance/str"
+	"github.com/digivance/applog"
+	"github.com/digivance/str"
 )
 
 // ViewResult is a derivitive of the ActionResult struct and

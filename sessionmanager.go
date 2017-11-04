@@ -15,7 +15,7 @@ package mvcapp
 import (
 	"time"
 
-	"github.com/Digivance/str"
+	"github.com/digivance/str"
 )
 
 // SessionManager is the base struct that manages the collection

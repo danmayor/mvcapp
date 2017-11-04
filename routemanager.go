@@ -19,8 +19,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/Digivance/applog"
-	"github.com/Digivance/str"
+	"github.com/digivance/applog"
+	"github.com/digivance/str"
 )
 
 // ControllerCreator is a delegate to the creation method of a controller

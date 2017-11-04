@@ -16,7 +16,7 @@ package mvcapp
 import (
 	"time"
 
-	"github.com/Digivance/str"
+	"github.com/digivance/str"
 )
 
 // Session represents an http session data model

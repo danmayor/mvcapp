@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Digivance/mvcapp"
+	"github.com/digivance/mvcapp"
 )
 
 // TestModel is used to test passing a data model to our view result / templates

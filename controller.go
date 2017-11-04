@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Digivance/str"
+	"github.com/digivance/str"
 )
 
 // ControllerCallback is a simple declaration to provide a callback method
