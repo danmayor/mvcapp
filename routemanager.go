@@ -49,7 +49,8 @@ func NewRouteManager() *RouteManager {
 		DefaultController: "Home",
 		DefaultAction:     "Index",
 
-		Routes: make([]*RouteMap, 0),
+		Routes:         make([]*RouteMap, 0),
+		SessionManager: NewSessionManager(),
 	}
 }
 
@@ -137,6 +138,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
 
+			controller.Response = response
 			controller.DefaultAction = manager.DefaultAction
 			controller.RequestedPath = path
 			controller.QueryString = queryString
@@ -146,7 +148,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				// Get the browser session ID from the request cookies
 				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
 				browserSessionID := ""
-				if err != nil {
+				if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 {
 					browserSessionID = str.Random(32)
 				} else {
 					browserSessionID = browserSessionCookie.Value
@@ -157,6 +159,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				browserSession := manager.SessionManager.GetSession(browserSessionID)
 				controller.Session = browserSession
 				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
+				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID})
 			}
 
 			// Write controllers cookies
@@ -169,39 +172,41 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				controller.BeforeExecute()
 			}
 
-			result := icontroller.Execute()
+			if controller.ContinuePipeline {
+				result := icontroller.Execute()
 
-			if result == nil {
-				if controller.NotFoundResult != nil {
-					result = controller.NotFoundResult(controller.RequestedPath)
-				} else {
-					result = controller.DefaultNotFoundPage()
-				}
-			}
-
-			if err := result.Execute(response); err != nil {
-				msg := err.Error()
-				if str.Compare(msg, "No response from request") {
+				if result == nil {
 					if controller.NotFoundResult != nil {
 						result = controller.NotFoundResult(controller.RequestedPath)
 					} else {
 						result = controller.DefaultNotFoundPage()
 					}
+				}
 
-					if err = result.Execute(response); err != nil {
-						applog.WriteError("Failed to display default 404 page!", err)
-						response.WriteHeader(404)
-					}
-				} else {
-					if controller.ErrorResult != nil {
-						result = controller.ErrorResult(err)
+				if err := result.Execute(response); err != nil {
+					msg := err.Error()
+					if str.Compare(msg, "No response from request") {
+						if controller.NotFoundResult != nil {
+							result = controller.NotFoundResult(controller.RequestedPath)
+						} else {
+							result = controller.DefaultNotFoundPage()
+						}
+
+						if err = result.Execute(response); err != nil {
+							applog.WriteError("Failed to display default 404 page!", err)
+							response.WriteHeader(404)
+						}
 					} else {
-						result = controller.DefaultErrorPage(err)
-					}
+						if controller.ErrorResult != nil {
+							result = controller.ErrorResult(err)
+						} else {
+							result = controller.DefaultErrorPage(err)
+						}
 
-					if err = result.Execute(response); err != nil {
-						applog.WriteError("Failed to display default error page!", err)
-						response.WriteHeader(500)
+						if err = result.Execute(response); err != nil {
+							applog.WriteError("Failed to display default error page!", err)
+							response.WriteHeader(500)
+						}
 					}
 				}
 			}

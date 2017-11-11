@@ -32,6 +32,7 @@ type IController interface {
 	RegisterAction(string, string, ActionMethod)
 	Execute() IActionResult
 	SetRequest(*http.Request)
+	RedirectJS(string)
 	ToController() *Controller
 }
 
@@ -40,10 +41,12 @@ type IController interface {
 type Controller struct {
 	IController
 
-	Request        *http.Request
-	Session        *Session
-	Cookies        []*http.Cookie
-	HTTPStatusCode int
+	Request          *http.Request
+	Response         http.ResponseWriter
+	Session          *Session
+	Cookies          []*http.Cookie
+	HTTPStatusCode   int
+	ContinuePipeline bool
 
 	RequestedPath string
 	QueryString   map[string]string
@@ -62,10 +65,11 @@ type Controller struct {
 // NewBaseController returns a reference to a new Base Controller
 func NewBaseController(request *http.Request) *Controller {
 	rtn := &Controller{
-		Request:        request,
-		Session:        &Session{},
-		Cookies:        make([]*http.Cookie, 0),
-		HTTPStatusCode: 200,
+		Request:          request,
+		Session:          NewSession(),
+		Cookies:          make([]*http.Cookie, 0),
+		HTTPStatusCode:   200,
+		ContinuePipeline: true,
 
 		RequestedPath: request.URL.Path,
 		QueryString:   map[string]string{},
@@ -93,8 +97,24 @@ func (controller *Controller) SetRequest(request *http.Request) {
 	controller.Request = request
 }
 
-// AddCookie is used to set append a new cookie to this controllers cookie collection
-func (controller *Controller) AddCookie(cookie *http.Cookie) {
+func (controller *Controller) GetCookie(name string) *http.Cookie {
+	for _, v := range controller.Cookies {
+		if str.Compare(v.Name, name) {
+			return v
+		}
+	}
+
+	return nil
+}
+
+func (controller *Controller) SetCookie(cookie *http.Cookie) {
+	for k, v := range controller.Cookies {
+		if str.Compare(v.Name, cookie.Name) {
+			controller.Cookies[k] = cookie
+			return
+		}
+	}
+
 	controller.Cookies = append(controller.Cookies, cookie)
 }
 
@@ -124,6 +144,19 @@ func (controller *Controller) Execute() IActionResult {
 	}
 
 	return NewActionResult([]byte{})
+}
+
+// RedirectJS is a helper method that will write a very simple html page using the
+// window.location.href='url' method to redirect the borwser to the provided url
+// Note this will also set the controller.ContinuePipeline to false, meaning that
+// the ActionMethod for this request will NOT be called. This allows us to use this
+// method from BeginExecute callbacks to lock down an entire controller to given
+// conditions, such as if the user is logged in. Can be called anytime before
+// AfterExecute.
+func (controller *Controller) RedirectJS(url string) {
+	data := fmt.Sprintf("<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='%s';</script></body></html>", url)
+	controller.ContinuePipeline = false
+	controller.Response.Write([]byte(data))
 }
 
 // ToController is a method defined by the controller object (which implements IController) that

@@ -21,6 +21,7 @@ import (
 // SessionManager is the base struct that manages the collection
 // of current http session models.
 type SessionManager struct {
+	SessionIDKey   string
 	Sessions       []*Session
 	SessionTimeout time.Duration
 }

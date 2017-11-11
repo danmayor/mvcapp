@@ -19,12 +19,17 @@ import (
 	"github.com/digivance/str"
 )
 
+type SessionValue struct {
+	Key   string
+	Value interface{}
+}
+
 // Session represents an http session data model
 type Session struct {
 	ID           string
 	CreatedDate  time.Time
 	ActivityDate time.Time
-	Values       map[string]interface{}
+	Values       []*SessionValue
 }
 
 // NewSession returns a new Session model
@@ -33,6 +38,27 @@ func NewSession() *Session {
 		ID:           str.Random(32),
 		CreatedDate:  time.Now(),
 		ActivityDate: time.Now(),
-		Values:       make(map[string]interface{}, 0),
+		Values:       make([]*SessionValue, 0),
 	}
+}
+
+func (session *Session) Get(key string) interface{} {
+	for _, v := range session.Values {
+		if str.Compare(v.Key, key) {
+			return v.Value
+		}
+	}
+
+	return nil
+}
+
+func (session *Session) Set(key string, value interface{}) {
+	for k, v := range session.Values {
+		if str.Compare(v.Key, key) {
+			session.Values[k].Value = value
+			return
+		}
+	}
+
+	session.Values = append(session.Values, &SessionValue{Key: key, Value: value})
 }
