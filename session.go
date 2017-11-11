@@ -19,6 +19,8 @@ import (
 	"github.com/digivance/str"
 )
 
+// SessionValue is a simple Key Value Pair struct used in the values
+// collection of a Session (such as a per user session)
 type SessionValue struct {
 	Key   string
 	Value interface{}
@@ -42,6 +44,7 @@ func NewSession() *Session {
 	}
 }
 
+// Get returns the interface{} of raw data value of the requested session value
 func (session *Session) Get(key string) interface{} {
 	for _, v := range session.Values {
 		if str.Compare(v.Key, key) {
@@ -52,6 +55,7 @@ func (session *Session) Get(key string) interface{} {
 	return nil
 }
 
+// Set will overwrite or create a new value with the provided interface{} of raw data
 func (session *Session) Set(key string, value interface{}) {
 	for k, v := range session.Values {
 		if str.Compare(v.Key, key) {

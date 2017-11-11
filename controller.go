@@ -23,7 +23,12 @@ import (
 // members (e.g. variables that point to methods to be executed)
 type ControllerCallback func()
 
+// ErrorResultCallback is a simple declaration to provide a callback method
+// used when there is an internal server error (such as custom error page)
 type ErrorResultCallback func(err error) IActionResult
+
+// NotFoundResultCallback is a simple declaration to provide a callback method
+// used when the requested content can not be found (custom 404)
 type NotFoundResultCallback func(url string) IActionResult
 
 // IController defines the RegisterAction and Execute methods that
@@ -97,6 +102,7 @@ func (controller *Controller) SetRequest(request *http.Request) {
 	controller.Request = request
 }
 
+// GetCookie returns the requested cookie from this controllers collection
 func (controller *Controller) GetCookie(name string) *http.Cookie {
 	for _, v := range controller.Cookies {
 		if str.Compare(v.Name, name) {
@@ -107,6 +113,7 @@ func (controller *Controller) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
+// SetCookie will overwrite or create a cookie in this controllers collection
 func (controller *Controller) SetCookie(cookie *http.Cookie) {
 	for k, v := range controller.Cookies {
 		if str.Compare(v.Name, cookie.Name) {
