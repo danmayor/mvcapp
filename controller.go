@@ -145,6 +145,10 @@ func (controller *Controller) Execute() IActionResult {
 
 	for _, actionMethod := range controller.ActionRoutes {
 		if str.Compare(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || str.Compare(actionMethod.Verb, verb)) {
+			if str.Compare(verb, "POST") {
+				controller.Request.ParseForm()
+			}
+
 			res := actionMethod.Method(params)
 			return res
 		}
