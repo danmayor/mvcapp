@@ -175,37 +175,39 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 			if controller.ContinuePipeline {
 				result := icontroller.Execute()
 
-				if result == nil {
-					if controller.NotFoundResult != nil {
-						result = controller.NotFoundResult(controller.RequestedPath)
-					} else {
-						result = controller.DefaultNotFoundPage()
-					}
-				}
-
-				if err := result.Execute(response); err != nil {
-					msg := err.Error()
-					if str.Compare(msg, "No response from request") {
+				if controller.ContinuePipeline {
+					if result == nil {
 						if controller.NotFoundResult != nil {
 							result = controller.NotFoundResult(controller.RequestedPath)
 						} else {
 							result = controller.DefaultNotFoundPage()
 						}
+					}
 
-						if err = result.Execute(response); err != nil {
-							applog.WriteError("Failed to display default 404 page!", err)
-							response.WriteHeader(404)
-						}
-					} else {
-						if controller.ErrorResult != nil {
-							result = controller.ErrorResult(err)
+					if err := result.Execute(response); err != nil {
+						msg := err.Error()
+						if str.Compare(msg, "No response from request") {
+							if controller.NotFoundResult != nil {
+								result = controller.NotFoundResult(controller.RequestedPath)
+							} else {
+								result = controller.DefaultNotFoundPage()
+							}
+
+							if err = result.Execute(response); err != nil {
+								applog.WriteError("Failed to display default 404 page!", err)
+								response.WriteHeader(404)
+							}
 						} else {
-							result = controller.DefaultErrorPage(err)
-						}
+							if controller.ErrorResult != nil {
+								result = controller.ErrorResult(err)
+							} else {
+								result = controller.DefaultErrorPage(err)
+							}
 
-						if err = result.Execute(response); err != nil {
-							applog.WriteError("Failed to display default error page!", err)
-							response.WriteHeader(500)
+							if err = result.Execute(response); err != nil {
+								applog.WriteError("Failed to display default error page!", err)
+								response.WriteHeader(500)
+							}
 						}
 					}
 				}
