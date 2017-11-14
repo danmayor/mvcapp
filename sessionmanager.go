@@ -13,7 +13,6 @@
 package mvcapp
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/digivance/str"
@@ -44,6 +43,17 @@ func (manager *SessionManager) GetSession(id string) *Session {
 	}
 
 	return manager.CreateSession(id)
+}
+
+// Contains detects if the requested id (key) exists in this session collection
+func (manager *SessionManager) Contains(id string) bool {
+	for _, v := range manager.Sessions {
+		if str.Equals(v.ID, id) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // CreateSession creates and returns a new http session model
@@ -88,8 +98,6 @@ func (manager *SessionManager) CleanSessions() {
 
 	for key, val := range manager.Sessions {
 		if val.ActivityDate.Before(expired) {
-			fmt.Printf("Expiring: %s because it's older than %s", val.ActivityDate, expired)
-
 			if key > 0 {
 				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key+1:]...)
 			} else {

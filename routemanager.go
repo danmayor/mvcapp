@@ -148,7 +148,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				// Get the browser session ID from the request cookies
 				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
 				browserSessionID := ""
-				if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 {
+				if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 || !manager.SessionManager.Contains(browserSessionCookie.Value) {
 					browserSessionID = str.Random(32)
 				} else {
 					browserSessionID = browserSessionCookie.Value
@@ -159,7 +159,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				browserSession := manager.SessionManager.GetSession(browserSessionID)
 				controller.Session = browserSession
 				controller.Session.ActivityDate = time.Now()
-				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Expires:})
+				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID})
 			}
 
 			// Write controllers cookies
