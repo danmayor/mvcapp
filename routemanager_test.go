@@ -43,38 +43,8 @@ func NewTestController(request *http.Request) mvcapp.IController {
 
 // Index is used to test our basic action methods
 func (controller TestController) Index(params []string) mvcapp.IActionResult {
-	if controller.Session.Values != nil {
-		// Here we test using the controllers' browser session
-		var saidHello bool
-		if controller.Session.Values["SaidHello"] != nil {
-			saidHello = controller.Session.Values["SaidHello"].(bool)
-		} else {
-			saidHello = false
-		}
-
-		if !saidHello {
-			saidHello = true
-			controller.Session.Values["SaidHello"] = saidHello
-		}
-	}
-
-	// Here we test setting cookies to be passed to the browser
-	controller.Cookies = append(controller.Cookies, &http.Cookie{
-		Name:   "Dan",
-		Value:  "is awesome!",
-		MaxAge: 900,
-	})
-
-	templates := []string{"testindex.htm"}
-	model := TestModel{
-		Title:   "Test Controller",
-		Welcome: "This message is from the data model!",
-	}
-
-	result := mvcapp.NewViewResult(templates, model)
-	result.AddHeader("Framework", "Digivance MVC Application Framework")
-
-	return result
+	// needs re-written
+	return nil
 }
 
 // TestRouteManager is our unit test method, it makes 2 requests to test passing cookies

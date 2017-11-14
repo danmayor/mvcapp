@@ -13,6 +13,7 @@
 package mvcapp
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/digivance/str"
@@ -30,7 +31,7 @@ type SessionManager struct {
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
 		Sessions:       make([]*Session, 0),
-		SessionTimeout: (900 * time.Second),
+		SessionTimeout: (15 * time.Minute),
 	}
 }
 
@@ -83,14 +84,20 @@ func (manager *SessionManager) DropSession(id string) {
 
 // CleanSessions will drop inactive sessions
 func (manager *SessionManager) CleanSessions() {
-	expires := time.Now().Add(manager.SessionTimeout)
+	expired := time.Now().Add(-manager.SessionTimeout)
 
 	for key, val := range manager.Sessions {
-		if expires.After(val.ActivityDate) {
+		if val.ActivityDate.Before(expired) {
+			fmt.Printf("Expiring: %s because it's older than %s", val.ActivityDate, expired)
+
 			if key > 0 {
 				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key+1:]...)
 			} else {
-				manager.Sessions = manager.Sessions[1:]
+				if len(manager.Sessions) > 1 {
+					manager.Sessions = manager.Sessions[1:]
+				} else {
+					manager.Sessions = make([]*Session, 0)
+				}
 			}
 		}
 	}

@@ -158,8 +158,8 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				// the controllers reference to it
 				browserSession := manager.SessionManager.GetSession(browserSessionID)
 				controller.Session = browserSession
-				controller.Session.ActivityDate = time.Now().Add(900 * time.Second)
-				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID})
+				controller.Session.ActivityDate = time.Now()
+				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Expires:})
 			}
 
 			// Write controllers cookies
