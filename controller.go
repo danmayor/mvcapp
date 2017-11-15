@@ -60,6 +60,9 @@ type Controller struct {
 	DefaultAction string
 	ActionRoutes  []*ActionMap
 
+	LastErrorMessage string
+	LastErrorDetails string
+
 	BeforeExecute ControllerCallback
 	AfterExecute  ControllerCallback
 
@@ -82,6 +85,9 @@ func NewBaseController(request *http.Request) *Controller {
 
 		DefaultAction: "",
 		ActionRoutes:  make([]*ActionMap, 0),
+
+		LastErrorMessage: "",
+		LastErrorDetails: "",
 	}
 
 	for _, cookie := range request.Cookies() {
