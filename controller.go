@@ -15,6 +15,7 @@ package mvcapp
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/digivance/str"
 )
@@ -131,19 +132,12 @@ func (controller *Controller) SetCookie(cookie *http.Cookie) {
 	controller.Cookies = append(controller.Cookies, cookie)
 }
 
-// DeleteCookie will delete a cookie from the controllers collection
-func (controller *Controller) DeleteCookie(cookie *http.Cookie) {
-	for k, v := range controller.Cookies {
-		if str.Compare(v.Name, cookie.Name) {
-			if k > 1 {
-				controller.Cookies = append(controller.Cookies[:k-1], controller.Cookies[k:]...)
-			} else {
-				if k == 1 {
-					controller.Cookies = append(controller.Cookies[2:], controller.Cookies[0])
-				} else {
-					controller.Cookies = controller.Cookies[1:]
-				}
-			}
+// DeleteCookie will set the cookie (identified by provided ccokieName) to expire in
+// the past, thus making the browser remove it and stop sending it back.
+func (controller *Controller) DeleteCookie(cookieName string) {
+	for _, v := range controller.Cookies {
+		if str.Compare(v.Name, cookieName) {
+			v.Expires = time.Now().Add(-1 * time.Hour)
 		}
 	}
 }

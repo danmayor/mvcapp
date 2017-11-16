@@ -66,3 +66,25 @@ func (session *Session) Set(key string, value interface{}) {
 
 	session.Values = append(session.Values, &SessionValue{Key: key, Value: value})
 }
+
+// Remove will remove the session value, identified by the provided key from this users
+// session value collection
+func (session *Session) Remove(key string) {
+	for k, v := range session.Values {
+		if str.Compare(v.Key, key) {
+			if k > 1 {
+				session.Values = append(session.Values[:k-1], session.Values[k+1:]...)
+				return
+			}
+
+			if k == 1 {
+				session.Values = append(session.Values[2:], session.Values[0])
+				return
+			}
+
+			if k == 0 {
+				session.Values = session.Values[1:]
+			}
+		}
+	}
+}
