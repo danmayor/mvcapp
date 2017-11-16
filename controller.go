@@ -131,6 +131,30 @@ func (controller *Controller) SetCookie(cookie *http.Cookie) {
 	controller.Cookies = append(controller.Cookies, cookie)
 }
 
+// DeleteCookie will delete a cookie from the controllers collection
+func (controller *Controller) DeleteCookie(cookie *http.Cookie) {
+	for k, v := range controller.Cookies {
+		if str.Compare(v.Name, cookie.Name) {
+			if k > 1 {
+				controller.Cookies = append(controller.Cookies[:k-1], controller.Cookies[k:]...)
+			} else {
+				if k == 1 {
+					controller.Cookies = append(controller.Cookies[2:], controller.Cookies[0])
+				} else {
+					controller.Cookies = controller.Cookies[1:]
+				}
+			}
+		}
+	}
+}
+
+// WriteCookies will write the http headers that define cookies to the browser
+func (controller *Controller) WriteCookies() {
+	for _, cookie := range controller.Cookies {
+		http.SetCookie(controller.Response, cookie)
+	}
+}
+
 // Execute is called by the route manager instructing this controller to respond
 func (controller *Controller) Execute() IActionResult {
 	verb := controller.Request.Method
@@ -173,6 +197,10 @@ func (controller *Controller) Execute() IActionResult {
 func (controller *Controller) RedirectJS(url string) {
 	data := fmt.Sprintf("<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='%s';</script></body></html>", url)
 	controller.ContinuePipeline = false
+
+	// We manually write the cookies to the browser here because we'll be breaking the
+	// standard pipelint (eg ContinuePipeline = false)
+	controller.WriteCookies()
 	controller.Response.Write([]byte(data))
 }
 

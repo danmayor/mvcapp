@@ -83,10 +83,14 @@ func (manager *SessionManager) SetSession(session *Session) {
 func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
 		if str.Equals(val.ID, id) {
-			if key > 0 {
+			if key > 1 {
 				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
 			} else {
-				manager.Sessions = manager.Sessions[1:]
+				if key == 1 {
+					manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
+				} else {
+					manager.Sessions = manager.Sessions[1:]
+				}
 			}
 		}
 	}

@@ -159,12 +159,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 				browserSession := manager.SessionManager.GetSession(browserSessionID)
 				controller.Session = browserSession
 				controller.Session.ActivityDate = time.Now()
-				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID})
-			}
-
-			// Write controllers cookies
-			for _, cookie := range controller.Cookies {
-				http.SetCookie(response, cookie)
+				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
 			}
 
 			// Prepare result
@@ -184,6 +179,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 						}
 					}
 
+					controller.WriteCookies()
 					if err := result.Execute(response); err != nil {
 						msg := err.Error()
 						if str.Compare(msg, "No response from request") {
