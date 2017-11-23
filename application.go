@@ -5,9 +5,6 @@
 
 	This file defines functionality for mapping an action method to an http request optionally
 	boud to an http verb.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -106,6 +103,8 @@ func (app *Application) RedirectSecureJS(w http.ResponseWriter, req *http.Reques
 	w.Write([]byte(data))
 }
 
+// appPath is used internally so that we don't have to query the os args
+// every time we ask to GetApplicationPath
 var appPath = ""
 
 // GetApplicationPath should return the full path to the executable.

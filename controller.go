@@ -5,9 +5,6 @@
 
 	This file defines the base controller functionality that the caller will use to derrive
 	their custom controller objects.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -15,8 +12,10 @@ package mvcapp
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/digivance/applog"
 	"github.com/digivance/str"
 )
 
@@ -26,63 +25,130 @@ type ControllerCallback func()
 
 // ErrorResultCallback is a simple declaration to provide a callback method
 // used when there is an internal server error (such as custom error page)
-type ErrorResultCallback func(err error) IActionResult
+type ErrorResultCallback func(err error) *ActionResult
 
 // NotFoundResultCallback is a simple declaration to provide a callback method
 // used when the requested content can not be found (custom 404)
-type NotFoundResultCallback func(url string) IActionResult
+type NotFoundResultCallback func() *ActionResult
 
 // IController defines the RegisterAction and Execute methods that
 // need to be implemented by all controllers
 type IController interface {
+	// RegisterAction should add the Verb, Controller and Action method names to the
+	// base controllers action map
 	RegisterAction(string, string, ActionMethod)
-	Execute() IActionResult
-	SetRequest(*http.Request)
+
+	// Execute should query and execute the mapped action method
+	Execute() *ActionResult
+
+	// WriteResponse should write the provided action result to the response stream
+	WriteResponse(*ActionResult) error
+
+	// RedirectJS is a method that should write an html page with javascript redirect
+	// function directly to the response stream (this can be used to lock pages from
+	// users based of custom conditions, such as logged in or not)
 	RedirectJS(string)
+
+	// ToController should return the actual base controller object (so that the system
+	// can interact with controller variable members)
 	ToController() *Controller
 }
 
 // Controller contains the basic members shared by custom controllers,
 // also defines the required RegisterAction and Execute methods (below)
 type Controller struct {
+	// IController is the interface that the base controller implements
 	IController
 
-	Request          *http.Request
-	Response         http.ResponseWriter
-	Session          *Session
-	Cookies          []*http.Cookie
-	HTTPStatusCode   int
+	// Request is the http.Request object that this controller is responding to
+	Request *http.Request
+
+	// Response is the response writer stream to write data to the client
+	Response http.ResponseWriter
+
+	// Session is the User browser session data collection for the user who made this request
+	Session *Session
+
+	// Cookies are populated from the collection submitted from the client. Server can alter
+	// or add cookies to this collection to have them delivered back to the client. (Call the
+	// controllers DeleteCookie method to signal the client to forget a cookie)
+	Cookies []*http.Cookie
+
+	// ContinuePipeline is used from methods that mean to prevent the execution of a controller
+	// action method. E.g. if a controller signals to RedirectJS in the BeforeExecute callback,
+	// this will be set to false and will prevent the action method from assembling and executing
+	// the action result.
 	ContinuePipeline bool
 
+	// ControllerName is used to help the template path mapping of the View method of this controller.
+	// Should be set in the controller creator method and should represent the folder name where the
+	// views for this controller can be found
+	ControllerName string
+
+	// RequestedPath is a quick reference member that contains the url path (after the domain) that
+	// was requested.
 	RequestedPath string
-	QueryString   map[string]string
-	Fragment      string
 
+	// QueryString is a quick reference member that contains the key value pair query string parameters
+	// that were submitted with this request
+	QueryString map[string]string
+
+	// Fragment represents the #Value portion of the requested URL (Note some sources indicate that URL
+	// fragments are or should be depreciated. Use URL fragments and this member at your discretion)
+	Fragment string
+
+	// DefaultAction is the name of the default action method name (in the route map) to try and execute
+	// when making a request directly to the controller.  (E.g. site.com/controller) (This should be your
+	// Index, Home or Default page name)
 	DefaultAction string
-	ActionRoutes  []*ActionMap
 
+	// ActionRoutes stores the routes which have been registered for this controller. This collection is
+	// used in the Execute method to find the appropriate action method function to call
+	ActionRoutes []*ActionMap
+
+	// LastErrorMessage allows you to pass a simple string indicating an error or page failure. Your templates
+	// should be aware of this member, and if present should display it as an error message to your user.
 	LastErrorMessage string
+
+	// LastErrorDetails allows for extended error message details (Example: if the LastErrorMessage was caused
+	// due to failing to validate an email address, these details could contain the site rules for valid emails
+	// and the template that see's these details set could then display said rules to the user)
 	LastErrorDetails string
 
+	// BeforeExecute is a callback method that a controller can set to provide a global method called before
+	// the action method is executed. (Controller global prep function)
 	BeforeExecute ControllerCallback
-	AfterExecute  ControllerCallback
 
-	ErrorResult    ErrorResultCallback
+	// AfterExecute is a callback method that a controller can set to provide a global method called after
+	// the action method is executed. (Controller global clean up function)
+	AfterExecute ControllerCallback
+
+	// ErrorResult is a callback method that a controller can set to respond to error conditions with a custom
+	// error page
+	ErrorResult ErrorResultCallback
+
+	// NotFoundResult is a callback method that a controller can set to respond to a content not found condition
+	// with a custom 404 page
 	NotFoundResult NotFoundResultCallback
 }
 
 // NewBaseController returns a reference to a new Base Controller
 func NewBaseController(request *http.Request) *Controller {
+	controllerName := strings.Split(request.URL.Path, "/")[0]
+	if controllerName == "" {
+		controllerName = "Home"
+	}
+
 	rtn := &Controller{
 		Request:          request,
 		Session:          NewSession(),
 		Cookies:          make([]*http.Cookie, 0),
-		HTTPStatusCode:   200,
 		ContinuePipeline: true,
 
-		RequestedPath: request.URL.Path,
-		QueryString:   map[string]string{},
-		Fragment:      "",
+		ControllerName: controllerName,
+		RequestedPath:  request.URL.Path,
+		QueryString:    map[string]string{},
+		Fragment:       "",
 
 		DefaultAction: "",
 		ActionRoutes:  make([]*ActionMap, 0),
@@ -102,11 +168,6 @@ func NewBaseController(request *http.Request) *Controller {
 // a given Http Request verb and action name (E.g. site.com/Controller/ActionName)
 func (controller *Controller) RegisterAction(verb string, name string, method ActionMethod) {
 	controller.ActionRoutes = append(controller.ActionRoutes, NewActionMap(verb, name, method))
-}
-
-// SetRequest is used to set the http.Request reference
-func (controller *Controller) SetRequest(request *http.Request) {
-	controller.Request = request
 }
 
 // GetCookie returns the requested cookie from this controllers collection
@@ -142,15 +203,8 @@ func (controller *Controller) DeleteCookie(cookieName string) {
 	}
 }
 
-// WriteCookies will write the http headers that define cookies to the browser
-func (controller *Controller) WriteCookies() {
-	for _, cookie := range controller.Cookies {
-		http.SetCookie(controller.Response, cookie)
-	}
-}
-
 // Execute is called by the route manager instructing this controller to respond
-func (controller *Controller) Execute() IActionResult {
+func (controller *Controller) Execute() *ActionResult {
 	verb := controller.Request.Method
 	actionName := controller.DefaultAction
 	params := []string{}
@@ -178,7 +232,40 @@ func (controller *Controller) Execute() IActionResult {
 		}
 	}
 
-	return NewActionResult([]byte{})
+	return controller.NotFoundResult()
+}
+
+// WriteResponse is called from the route manager to execute the result that was constructed
+// from this controllers Execute method (E.g. the result returned from the action if mapped)
+func (controller *Controller) WriteResponse(result *ActionResult) error {
+	if controller.ContinuePipeline {
+		if result == nil {
+			if controller.NotFoundResult != nil {
+				result = controller.NotFoundResult()
+			} else {
+				result = controller.DefaultNotFoundPage()
+			}
+		}
+
+		if err := result.Execute(controller.Response); err != nil {
+			msg := err.Error()
+			if str.Compare(msg, "No response from request") {
+				result = controller.NotFoundResult()
+
+				if err = result.Execute(controller.Response); err != nil {
+					applog.WriteError("Failed to display default 404 page!", err)
+				}
+			} else {
+				result = controller.ErrorResult(err)
+
+				if err = result.Execute(controller.Response); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // RedirectJS is a helper method that will write a very simple html page using the
@@ -194,8 +281,35 @@ func (controller *Controller) RedirectJS(url string) {
 
 	// We manually write the cookies to the browser here because we'll be breaking the
 	// standard pipelint (eg ContinuePipeline = false)
-	controller.WriteCookies()
-	controller.Response.Write([]byte(data))
+	res := NewActionResult([]byte(data))
+	res.StatusCode = 301
+	res.Cookies = controller.Cookies
+
+	res.Execute(controller.Response)
+}
+
+// Result returns a new ActionResult and automatically assigns the controllers cookies
+func (controller *Controller) Result(data []byte) *ActionResult {
+	res := NewActionResult(data)
+	res.Cookies = controller.Cookies
+	return res
+}
+
+// View will take the provided array of template names and try to make an mvcapp Template
+// List (see func mvcapp.MakeTemplateList) using the type name of this controller (from
+// reflection). Then returns the ViewResult that is created.
+func (controller *Controller) View(templates []string, model interface{}) *ActionResult {
+	templateList := MakeTemplateList(str.ToLower(controller.ControllerName), templates)
+	res := NewViewResult(templateList, model)
+	res.Cookies = controller.Cookies
+	return res
+}
+
+// JSON returns a new JSONResult object of the provided payload
+func (controller *Controller) JSON(payload interface{}) *ActionResult {
+	res := NewJSONResult(payload)
+	res.Cookies = controller.Cookies
+	return res
 }
 
 // ToController is a method defined by the controller object (which implements IController) that
@@ -206,18 +320,23 @@ func (controller *Controller) ToController() *Controller {
 }
 
 // DefaultErrorPage will attempt to render the built in error page
-func (controller *Controller) DefaultErrorPage(err error) IActionResult {
-	controller.HTTPStatusCode = 500
+func (controller *Controller) DefaultErrorPage(err error) *ActionResult {
 	html := fmt.Sprintf("<html><head><title>Server Error</title></head><body><h1>Server Error :(</h1>%s</body></html>", err.Error())
 	data := []byte(html)
-	return NewActionResult(data)
+	res := NewActionResult(data)
+	res.Cookies = controller.Cookies
+	res.StatusCode = 500
+
+	return res
 }
 
 // DefaultNotFoundPage will attempt to render the built in 404 page
-func (controller *Controller) DefaultNotFoundPage() IActionResult {
-	controller.HTTPStatusCode = 404
-	url := controller.RequestedPath
-	html := fmt.Sprintf("<html><head><title>Content Not Found</title></head><body><h1>Content Missing</h1>We're sorry, we could not find '%s' from this app :(</body></html>", url)
+func (controller *Controller) DefaultNotFoundPage() *ActionResult {
+	html := fmt.Sprintf("<html><head><title>Content Not Found</title></head><body><h1>Content Missing</h1>We're sorry, we could not find '%s' from this app :(</body></html>", controller.RequestedPath)
 	data := []byte(html)
-	return NewActionResult(data)
+	res := NewActionResult(data)
+	res.Cookies = controller.Cookies
+	res.StatusCode = 400
+
+	return res
 }

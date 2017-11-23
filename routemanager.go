@@ -6,9 +6,6 @@
 	This file defines the generic route manager functionality of the MVC application. This manager
 	allows the caller to register route maps and bind the handler method. This system drives the
 	request pipeline of an MVC application made with this framework.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -31,12 +28,26 @@ type ControllerCreator func(*http.Request) IController
 // RouteManager provides the basic http request pipeline of the
 // mvcapp framework
 type RouteManager struct {
+	// SessionIDKey is the name of the Cookie / Session key to use when identifying
+	// the browser session ID. (E.g. name of the cookie that contains this users
+	// browser session ID)
 	SessionIDKey string
 
+	// DefaultController is a string defining the name of the controller to execute
+	// when a request comes in to the root of the site (Should be your home /
+	// site index controller)
 	DefaultController string
-	DefaultAction     string
 
-	Routes         []*RouteMap
+	// DefaultAction is a string defining the name of the action method to be called
+	// when a request is made to the root of a controller. (This should be your home
+	// / default or index page name)
+	DefaultAction string
+
+	// Routes is the collection of RouteMaps that define the controllers which are
+	// registered in this manager
+	Routes []*RouteMap
+
+	// SessionManager is a pointer to the SessionManager object to use for this app
 	SessionManager *SessionManager
 }
 
@@ -123,11 +134,9 @@ func (manager *RouteManager) parseControllerName(path string) string {
 	return rtn
 }
 
-// handleController is used to attempt to handle a request through an mvcapp controller
-// pipeline. (E.g. controller.BeforeExecute, controller.Execute, writes the header with
-// the controller.HTTPStatusCode and then executes the ActionResult (to deliver the payload)
-// and finally the controller.AfterExecute
-func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
+// getController takes the response and request from our http server and map it to the
+// registered icontroller and controller objects (if they exist)
+func (manager *RouteManager) getController(response http.ResponseWriter, request *http.Request) (IController, *Controller) {
 	fragment, url := manager.parseFragment(request.URL.Path)
 	path, queryString := manager.parseQueryString(url)
 	controllerName := manager.parseControllerName(path)
@@ -144,80 +153,79 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 			controller.QueryString = queryString
 			controller.Fragment = fragment
 
-			if manager.SessionManager != nil {
-				// Get the browser session ID from the request cookies
-				browserSessionCookie, err := request.Cookie(manager.SessionIDKey)
-				browserSessionID := ""
-				if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 || !manager.SessionManager.Contains(browserSessionCookie.Value) {
-					browserSessionID = str.Random(32)
-				} else {
-					browserSessionID = browserSessionCookie.Value
-				}
+			return icontroller, controller
+		}
+	}
 
-				// Get the browserSession from the SessionManager and set
-				// the controllers reference to it
-				browserSession := manager.SessionManager.GetSession(browserSessionID)
-				controller.Session = browserSession
-				controller.Session.ActivityDate = time.Now()
-				controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
-			}
+	return nil, nil
+}
 
-			// Prepare result
-			if controller.BeforeExecute != nil {
-				controller.BeforeExecute()
-			}
+// setControllerSessions is called if there is an active session manager. This method will
+// read the browser cookies to find the browser session ID (as defined by the managers SessionIDKey)
+// and if present, will load the browser session value collection for this user into the controllers
+// Session member.
+func (manager *RouteManager) setControllerSessions(controller *Controller) {
+	// Get the browser session ID from the request cookies
+	browserSessionCookie, err := controller.Request.Cookie(manager.SessionIDKey)
+	browserSessionID := ""
+	if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 || !manager.SessionManager.Contains(browserSessionCookie.Value) {
+		browserSessionID = str.Random(32)
+	} else {
+		browserSessionID = browserSessionCookie.Value
+	}
 
-			if controller.ContinuePipeline {
-				result := icontroller.Execute()
+	// Get the browserSession from the SessionManager and set
+	// the controllers reference to it
+	browserSession := manager.SessionManager.GetSession(browserSessionID)
+	controller.Session = browserSession
+	controller.Session.ActivityDate = time.Now()
+	controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
+}
 
-				if controller.ContinuePipeline {
-					if result == nil {
-						if controller.NotFoundResult != nil {
-							result = controller.NotFoundResult(controller.RequestedPath)
-						} else {
-							result = controller.DefaultNotFoundPage()
-						}
-					}
+// handleController is used to attempt to handle a request through an mvcapp controller
+// pipeline. (E.g. controller.BeforeExecute, controller.Execute, writes the header with
+// the controller.HTTPStatusCode and then executes the ActionResult (to deliver the payload)
+// and finally the controller.AfterExecute
+func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
+	// Gets the controller objects responsible for this route (if they exist)
+	icontroller, controller := manager.getController(response, request)
+	if icontroller == nil || controller == nil {
+		return false
+	}
 
-					controller.WriteCookies()
-					if err := result.Execute(response); err != nil {
-						msg := err.Error()
-						if str.Compare(msg, "No response from request") {
-							if controller.NotFoundResult != nil {
-								result = controller.NotFoundResult(controller.RequestedPath)
-							} else {
-								result = controller.DefaultNotFoundPage()
-							}
+	// If the route manager has a session manager, we'll fire that bad boy up
+	// and try to get the browser session id from the submitted cookies
+	// which is then loaded into the controller session value collection
+	if manager.SessionManager != nil {
+		manager.setControllerSessions(controller)
+	}
 
-							if err = result.Execute(response); err != nil {
-								applog.WriteError("Failed to display default 404 page!", err)
-								response.WriteHeader(404)
-							}
-						} else {
-							if controller.ErrorResult != nil {
-								result = controller.ErrorResult(err)
-							} else {
-								result = controller.DefaultErrorPage(err)
-							}
+	// Call our before execute callback if one is registered
+	if controller.BeforeExecute != nil {
+		controller.BeforeExecute()
+	}
 
-							if err = result.Execute(response); err != nil {
-								applog.WriteError("Failed to display default error page!", err)
-								response.WriteHeader(500)
-							}
-						}
-					}
-				}
-			}
-
+	// If our before execute needs to fail, it can do so and set continue pipeline
+	// to false, which means we should not attempt to execute the controller.
+	if controller.ContinuePipeline {
+		result := icontroller.Execute()
+		if err := icontroller.WriteResponse(result); err != nil {
+			applog.WriteError("Failed to display default error page!", err)
 			if controller.AfterExecute != nil {
 				controller.AfterExecute()
 			}
 
-			return true
+			return false
 		}
 	}
 
-	return false
+	// Regardless of executing the controller or not, we call the after execute callback
+	// if it exists
+	if controller.AfterExecute != nil {
+		controller.AfterExecute()
+	}
+
+	return true
 }
 
 // handleFile is called if handleController is false and will attempt to serve a raw file
@@ -234,14 +242,14 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 			if str.StartsWith(route.ControllerName, manager.DefaultController) {
 				controller := route.CreateController(request).ToController()
 				if controller.NotFoundResult != nil {
-					result := controller.NotFoundResult(url)
+					result := controller.NotFoundResult()
 					if err := result.Execute(response); err != nil {
-						response.WriteHeader(404)
+						applog.WriteError("Failed to render 404 result", err)
 					}
 				} else {
 					result := controller.DefaultNotFoundPage()
 					if err := result.Execute(response); err != nil {
-						response.WriteHeader(404)
+						applog.WriteError("Failed to render 404 result", err)
 					}
 				}
 			}
@@ -256,6 +264,10 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 // validPath is used internally to ignore paths that are used by the mvcapp system
 func validPath(path string) bool {
 	if str.StartsWith(path, "controllers/") {
+		return false
+	}
+
+	if str.StartsWith(path, "emails/") {
 		return false
 	}
 

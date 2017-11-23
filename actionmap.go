@@ -5,21 +5,23 @@
 
 	This file defines functionality for mapping an action method to an http request optionally
 	boud to an http verb.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
 
 // ActionMethod defines the method signature for controller action methods
-type ActionMethod func([]string) IActionResult
+type ActionMethod func([]string) *ActionResult
 
 // ActionMap is used to define the HTTP Verb, Controller's Action Name
 // and the corresponding action method
 type ActionMap struct {
-	Verb   string
-	Name   string
+	// Verb is the HTTP Verb to bind this mapping to, blank to respond to all
+	Verb string
+
+	// Name is the site.com/controller/<ACTION> name that this map handles
+	Name string
+
+	// Method is the actual action method to execute on the controller
 	Method ActionMethod
 }
 
