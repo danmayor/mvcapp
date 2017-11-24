@@ -206,7 +206,7 @@ func (controller *Controller) Execute() *ActionResult {
 	actionName := controller.DefaultAction
 	params := []string{}
 
-	if strings.Contains(strings.ToLower(controller.RequestedPath), "/") {
+	if strings.Contains(strings.ToLower(controller.RequestedPath), "/") && controller.RequestedPath != "/" {
 		parts := strings.Split(controller.RequestedPath, "/")
 
 		if len(parts) > 1 {
@@ -229,7 +229,7 @@ func (controller *Controller) Execute() *ActionResult {
 		}
 	}
 
-	return controller.NotFoundResult()
+	return nil
 }
 
 // WriteResponse is called from the route manager to execute the result that was constructed

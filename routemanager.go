@@ -72,11 +72,45 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
-	if manager.handleController(response, request) {
-		return
+	// Gets the controller objects responsible for this route (if they exist)
+	icontroller, controller := manager.getController(response, request)
+
+	// If the route manager has a session manager, we'll fire that bad boy up
+	// and try to get the browser session id from the submitted cookies
+	// which is then loaded into the controller session value collection
+	if manager.SessionManager != nil {
+		manager.setControllerSessions(controller)
 	}
 
-	manager.handleFile(response, request)
+	// Call our before execute callback if one is registered
+	if controller.BeforeExecute != nil {
+		controller.BeforeExecute()
+	}
+
+	// If our before execute needs to fail, it can do so and set continue pipeline
+	// to false, which means we should not attempt to execute the controller.
+	if controller.ContinuePipeline {
+		result := icontroller.Execute()
+		if result == nil {
+			if !manager.handleFile(response, request) {
+				if controller.NotFoundResult != nil {
+					result = controller.NotFoundResult()
+				} else {
+					result = controller.DefaultNotFoundPage()
+				}
+			}
+		} else {
+			if err := icontroller.WriteResponse(result); err != nil {
+				LogError(err.Error())
+			}
+		}
+	}
+
+	// Regardless of executing the controller or not, we call the after execute callback
+	// if it exists
+	if controller.AfterExecute != nil {
+		controller.AfterExecute()
+	}
 }
 
 // parseFragment will extract, and remove the fragment (or named anchor) section
@@ -125,7 +159,7 @@ func (manager *RouteManager) parseControllerName(path string) string {
 	rtn := manager.DefaultController
 	parts := strings.Split(path, "/")
 
-	if len(parts) > 0 {
+	if len(parts) > 0 && parts[0] != "" {
 		rtn = parts[0]
 	}
 
@@ -180,54 +214,10 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 	controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
 }
 
-// handleController is used to attempt to handle a request through an mvcapp controller
-// pipeline. (E.g. controller.BeforeExecute, controller.Execute, writes the header with
-// the controller.HTTPStatusCode and then executes the ActionResult (to deliver the payload)
-// and finally the controller.AfterExecute
-func (manager *RouteManager) handleController(response http.ResponseWriter, request *http.Request) bool {
-	// Gets the controller objects responsible for this route (if they exist)
-	icontroller, controller := manager.getController(response, request)
-	if icontroller == nil || controller == nil {
-		return false
-	}
-
-	// If the route manager has a session manager, we'll fire that bad boy up
-	// and try to get the browser session id from the submitted cookies
-	// which is then loaded into the controller session value collection
-	if manager.SessionManager != nil {
-		manager.setControllerSessions(controller)
-	}
-
-	// Call our before execute callback if one is registered
-	if controller.BeforeExecute != nil {
-		controller.BeforeExecute()
-	}
-
-	// If our before execute needs to fail, it can do so and set continue pipeline
-	// to false, which means we should not attempt to execute the controller.
-	if controller.ContinuePipeline {
-		result := icontroller.Execute()
-		if err := icontroller.WriteResponse(result); err != nil {
-			LogError(err.Error())
-			if controller.AfterExecute != nil {
-				controller.AfterExecute()
-			}
-
-			return false
-		}
-	}
-
-	// Regardless of executing the controller or not, we call the after execute callback
-	// if it exists
-	if controller.AfterExecute != nil {
-		controller.AfterExecute()
-	}
-
-	return true
-}
-
-// handleFile is called if handleController is false and will attempt to serve a raw file
-func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) {
+// handleFile is called if HandleRequest fails to load the controller or the result, if this fails
+// we will fall back on MVC 404 functionality
+func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) bool {
+	// TODO: Add a case insensitive file finding thingie here (because linux kind of sucks like that)
 	_, url := manager.parseFragment(request.URL.Path)
 	path, _ := manager.parseQueryString(url)
 
@@ -235,28 +225,27 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		for _, route := range manager.Routes {
-			if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(manager.DefaultController)) {
-				controller := route.CreateController(request).ToController()
-				if controller.NotFoundResult != nil {
-					result := controller.NotFoundResult()
-					if err := result.Execute(response); err != nil {
-						LogError(err.Error())
-					}
-				} else {
-					result := controller.DefaultNotFoundPage()
-					if err := result.Execute(response); err != nil {
-						LogError(err.Error())
-					}
-				}
-			}
-		}
-	} else {
-		if validPath(path) {
-			http.ServeFile(response, request, path)
-		}
+	if path == "" {
+		return false
 	}
+
+	f, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	// refuse to serve directory contents for security
+	mode := f.Mode()
+	if mode.IsDir() {
+		return false
+	}
+
+	if validPath(path) {
+		http.ServeFile(response, request, path)
+		return true
+	}
+
+	return false
 }
 
 // validPath is used internally to ignore paths that are used by the mvcapp system
