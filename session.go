@@ -11,17 +11,16 @@
 package mvcapp
 
 import (
+	"strings"
 	"time"
-
-	"github.com/digivance/str"
 )
 
 // SessionValue is a simple Key Value Pair struct used in the values
 // collection of a Session (such as a per user session)
 type SessionValue struct {
-	// Key represents the key that serves as the index of this session value in a 
+	// Key represents the key that serves as the index of this session value in a
 	// browser session value collection
-	Key   string
+	Key string
 
 	// Value is the data stored for this session value
 	Value interface{}
@@ -30,22 +29,22 @@ type SessionValue struct {
 // Session represents an http browser session data model
 type Session struct {
 	// ID is the unique key string that represents this browser session
-	ID           string
+	ID string
 
 	// CreatedDate is the date and time when this browser session was created
-	CreatedDate  time.Time
+	CreatedDate time.Time
 
 	// ActivityDate is the date and time when this browser session was last active
 	ActivityDate time.Time
 
 	// Values is the collection of key value pair data stored in this browser session
-	Values       []*SessionValue
+	Values []*SessionValue
 }
 
 // NewSession returns a new Session model
 func NewSession() *Session {
 	return &Session{
-		ID:           str.Random(32),
+		ID:           RandomString(32),
 		CreatedDate:  time.Now(),
 		ActivityDate: time.Now(),
 		Values:       make([]*SessionValue, 0),
@@ -55,7 +54,7 @@ func NewSession() *Session {
 // Get returns the interface{} of raw data value of the requested session value
 func (session *Session) Get(key string) interface{} {
 	for _, v := range session.Values {
-		if str.Compare(v.Key, key) {
+		if strings.EqualFold(v.Key, key) {
 			return v.Value
 		}
 	}
@@ -66,7 +65,7 @@ func (session *Session) Get(key string) interface{} {
 // Set will overwrite or create a new value with the provided interface{} of raw data
 func (session *Session) Set(key string, value interface{}) {
 	for k, v := range session.Values {
-		if str.Compare(v.Key, key) {
+		if strings.EqualFold(v.Key, key) {
 			session.Values[k].Value = value
 			return
 		}
@@ -79,7 +78,7 @@ func (session *Session) Set(key string, value interface{}) {
 // session value collection
 func (session *Session) Remove(key string) {
 	for k, v := range session.Values {
-		if str.Compare(v.Key, key) {
+		if strings.EqualFold(v.Key, key) {
 			if k > 1 {
 				session.Values = append(session.Values[:k-1], session.Values[k+1:]...)
 				return

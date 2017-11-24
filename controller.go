@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/digivance/applog"
-	"github.com/digivance/str"
 )
 
 // ControllerCallback is a simple declaration to provide a callback method
@@ -173,7 +172,7 @@ func (controller *Controller) RegisterAction(verb string, name string, method Ac
 // GetCookie returns the requested cookie from this controllers collection
 func (controller *Controller) GetCookie(name string) *http.Cookie {
 	for _, v := range controller.Cookies {
-		if str.Compare(v.Name, name) {
+		if strings.EqualFold(v.Name, name) {
 			return v
 		}
 	}
@@ -184,7 +183,7 @@ func (controller *Controller) GetCookie(name string) *http.Cookie {
 // SetCookie will overwrite or create a cookie in this controllers collection
 func (controller *Controller) SetCookie(cookie *http.Cookie) {
 	for k, v := range controller.Cookies {
-		if str.Compare(v.Name, cookie.Name) {
+		if strings.EqualFold(v.Name, cookie.Name) {
 			controller.Cookies[k] = cookie
 			return
 		}
@@ -197,7 +196,7 @@ func (controller *Controller) SetCookie(cookie *http.Cookie) {
 // the past, thus making the browser remove it and stop sending it back.
 func (controller *Controller) DeleteCookie(cookieName string) {
 	for _, v := range controller.Cookies {
-		if str.Compare(v.Name, cookieName) {
+		if strings.EqualFold(v.Name, cookieName) {
 			v.Expires = time.Now().Add(-1 * time.Hour)
 		}
 	}
@@ -209,8 +208,8 @@ func (controller *Controller) Execute() *ActionResult {
 	actionName := controller.DefaultAction
 	params := []string{}
 
-	if str.Contains(controller.RequestedPath, "/") {
-		parts := str.Split(controller.RequestedPath, '/')
+	if strings.Contains(strings.ToLower(controller.RequestedPath), "/") {
+		parts := strings.Split(controller.RequestedPath, "/")
 
 		if len(parts) > 1 {
 			actionName = parts[1]
@@ -222,8 +221,8 @@ func (controller *Controller) Execute() *ActionResult {
 	}
 
 	for _, actionMethod := range controller.ActionRoutes {
-		if str.Compare(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || str.Compare(actionMethod.Verb, verb)) {
-			if str.Compare(verb, "POST") {
+		if strings.EqualFold(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || strings.EqualFold(actionMethod.Verb, verb)) {
+			if strings.EqualFold(verb, "POST") {
 				controller.Request.ParseForm()
 			}
 
@@ -249,7 +248,7 @@ func (controller *Controller) WriteResponse(result *ActionResult) error {
 
 		if err := result.Execute(controller.Response); err != nil {
 			msg := err.Error()
-			if str.Compare(msg, "No response from request") {
+			if strings.EqualFold(msg, "No response from request") {
 				result = controller.NotFoundResult()
 
 				if err = result.Execute(controller.Response); err != nil {
@@ -299,7 +298,7 @@ func (controller *Controller) Result(data []byte) *ActionResult {
 // List (see func mvcapp.MakeTemplateList) using the type name of this controller (from
 // reflection). Then returns the ViewResult that is created.
 func (controller *Controller) View(templates []string, model interface{}) *ActionResult {
-	templateList := MakeTemplateList(str.ToLower(controller.ControllerName), templates)
+	templateList := MakeTemplateList(strings.ToLower(controller.ControllerName), templates)
 	res := NewViewResult(templateList, model)
 	res.Cookies = controller.Cookies
 	return res

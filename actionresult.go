@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/digivance/applog"
-	"github.com/digivance/str"
 )
 
 // ActionResult is a base level struct that implements the Execute
@@ -50,8 +50,8 @@ func NewActionResult(data []byte) *ActionResult {
 // member set to the compiled templates requested
 func NewViewResult(templates []string, model interface{}) *ActionResult {
 	funcMap := template.FuncMap{
-		"ToUpper": str.ToUpper,
-		"ToLower": str.ToLower,
+		"ToUpper": strings.ToUpper,
+		"ToLower": strings.ToLower,
 	}
 
 	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(templates...)

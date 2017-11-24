@@ -11,8 +11,6 @@ package mvcapp
 
 import (
 	"time"
-
-	"github.com/digivance/str"
 )
 
 // SessionManager is the base struct that manages the collection
@@ -20,10 +18,10 @@ import (
 type SessionManager struct {
 	// SessionIDKey is the name of the cookie value that will store the unique ID of the browser
 	// session
-	SessionIDKey   string
+	SessionIDKey string
 
 	// Sessions is the collection of browser session objects
-	Sessions       []*Session
+	Sessions []*Session
 
 	// SessionTimeout is the duration of time that a browser session will stay in memory between
 	// requests / activity from the user
@@ -41,7 +39,7 @@ func NewSessionManager() *SessionManager {
 // GetSession returns the current http session for the provided session id
 func (manager *SessionManager) GetSession(id string) *Session {
 	for key, val := range manager.Sessions {
-		if str.Equals(val.ID, id) {
+		if val.ID == id {
 			return manager.Sessions[key]
 		}
 	}
@@ -52,7 +50,7 @@ func (manager *SessionManager) GetSession(id string) *Session {
 // Contains detects if the requested id (key) exists in this session collection
 func (manager *SessionManager) Contains(id string) bool {
 	for _, v := range manager.Sessions {
-		if str.Equals(v.ID, id) {
+		if v.ID == id {
 			return true
 		}
 	}
@@ -86,7 +84,7 @@ func (manager *SessionManager) SetSession(session *Session) {
 // on the provided session id
 func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
-		if str.Equals(val.ID, id) {
+		if val.ID == id {
 			if key > 1 {
 				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
 			} else {

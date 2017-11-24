@@ -2,7 +2,9 @@ package mvcapp
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 )
 
 // TemplateExists checks the standard folder paths based on the provided controllerName
@@ -82,4 +84,42 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 	}
 
 	return rtn
+}
+
+// Some constant configuration values for random string generation methods
+const (
+	// letterBytes : Available characters for random string
+	letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	// letterIDBits : Used in reduced byte masking
+	letterIDBits = 6
+
+	// letterIDMask : Used in reduced byte masking
+	letterIDMask = 1<<letterIDBits - 1
+
+	// letterIDMax : Used in reduced byte masking
+	letterIDMax = 63 / letterIDBits
+)
+
+// randomizer : Internal rand.Source
+var randomizer = rand.NewSource(time.Now().UnixNano())
+
+// RandomString returns a randomly generated string of the given length.
+func RandomString(length int) string {
+	data := make([]byte, length)
+	for i, cache, remain := length-1, randomizer.Int63(), letterIDMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = randomizer.Int63(), letterIDMax
+		}
+
+		if id := int(cache & letterIDMask); id < len(letterBytes) {
+			data[i] = letterBytes[id]
+			i--
+		}
+
+		cache >>= letterIDBits
+		remain--
+	}
+
+	return string(data)
 }

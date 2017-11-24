@@ -14,10 +14,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/digivance/applog"
-	"github.com/digivance/str"
 )
 
 // ControllerCreator is a delegate to the creation method of a controller
@@ -86,9 +86,9 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 func (manager *RouteManager) parseFragment(url string) (string, string) {
 	fragment := ""
 
-	if str.Contains(url, "#") {
-		fragment = str.RightOf(url, "#")
-		url = str.LeftOf(url, "#")
+	if strings.Contains(url, "#") {
+		fragment = url[strings.Index(url, "#"):]
+		url = url[0 : strings.Index(url, "#")-1]
 	}
 
 	return fragment, url
@@ -100,12 +100,12 @@ func (manager *RouteManager) parseQueryString(url string) (string, map[string]st
 	path := ""
 	queryString := map[string]string{}
 
-	if str.Contains(url, "?") {
-		path = str.LeftOf(url, "?")
-		qsLine := str.RightOf(url, "?")
+	if strings.Contains(url, "?") {
+		path = url[0 : strings.Index(url, "?")-1]
+		qsLine := url[strings.Index(url, "?"):]
 
-		for _, pair := range str.Split(qsLine, '&') {
-			kvp := str.Split(pair, '=')
+		for _, pair := range strings.Split(qsLine, "&") {
+			kvp := strings.Split(pair, "=")
 			if len(kvp) > 1 {
 				queryString[kvp[0]] = kvp[1]
 			}
@@ -125,7 +125,7 @@ func (manager *RouteManager) parseQueryString(url string) (string, map[string]st
 // the default controller if this is a root request.
 func (manager *RouteManager) parseControllerName(path string) string {
 	rtn := manager.DefaultController
-	parts := str.Split(path, '/')
+	parts := strings.Split(path, "/")
 
 	if len(parts) > 0 {
 		rtn = parts[0]
@@ -142,7 +142,7 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 	controllerName := manager.parseControllerName(path)
 
 	for _, route := range manager.Routes {
-		if str.StartsWith(route.ControllerName, controllerName) {
+		if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(controllerName)) {
 			// Construct the appropriate controller
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
@@ -169,7 +169,7 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 	browserSessionCookie, err := controller.Request.Cookie(manager.SessionIDKey)
 	browserSessionID := ""
 	if err != nil || browserSessionCookie == nil || len(browserSessionCookie.Value) < 32 || !manager.SessionManager.Contains(browserSessionCookie.Value) {
-		browserSessionID = str.Random(32)
+		browserSessionID = RandomString(32)
 	} else {
 		browserSessionID = browserSessionCookie.Value
 	}
@@ -233,13 +233,13 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 	_, url := manager.parseFragment(request.URL.Path)
 	path, _ := manager.parseQueryString(url)
 
-	if str.StartsWith(path, "/") {
+	if strings.HasPrefix(strings.ToLower(path), "/") {
 		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		for _, route := range manager.Routes {
-			if str.StartsWith(route.ControllerName, manager.DefaultController) {
+			if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(manager.DefaultController)) {
 				controller := route.CreateController(request).ToController()
 				if controller.NotFoundResult != nil {
 					result := controller.NotFoundResult()
@@ -263,23 +263,23 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 
 // validPath is used internally to ignore paths that are used by the mvcapp system
 func validPath(path string) bool {
-	if str.StartsWith(path, "controllers/") {
+	if strings.HasPrefix(strings.ToLower(path), "controllers/") {
 		return false
 	}
 
-	if str.StartsWith(path, "emails/") {
+	if strings.HasPrefix(strings.ToLower(path), "emails/") {
 		return false
 	}
 
-	if str.StartsWith(path, "models/") {
+	if strings.HasPrefix(strings.ToLower(path), "models/") {
 		return false
 	}
 
-	if str.StartsWith(path, "views/") {
+	if strings.HasPrefix(strings.ToLower(path), "views/") {
 		return false
 	}
 
-	if !str.Contains(path, "/") {
+	if !strings.Contains(strings.ToLower(path), "/") {
 		return false
 	}
 
