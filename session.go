@@ -6,9 +6,6 @@
 	This file defines the basic Browser Session object. This object provides a server side memory map
 	that can store values between requests. This session is identified by the session ID provided in
 	the cookies of the incoming request.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -22,15 +19,26 @@ import (
 // SessionValue is a simple Key Value Pair struct used in the values
 // collection of a Session (such as a per user session)
 type SessionValue struct {
+	// Key represents the key that serves as the index of this session value in a 
+	// browser session value collection
 	Key   string
+
+	// Value is the data stored for this session value
 	Value interface{}
 }
 
-// Session represents an http session data model
+// Session represents an http browser session data model
 type Session struct {
+	// ID is the unique key string that represents this browser session
 	ID           string
+
+	// CreatedDate is the date and time when this browser session was created
 	CreatedDate  time.Time
+
+	// ActivityDate is the date and time when this browser session was last active
 	ActivityDate time.Time
+
+	// Values is the collection of key value pair data stored in this browser session
 	Values       []*SessionValue
 }
 

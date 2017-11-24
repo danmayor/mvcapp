@@ -5,9 +5,6 @@
 
 	This file defines functionality for an in process browser session manager system. (E.g. per user
 	server side memory map)
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -21,8 +18,15 @@ import (
 // SessionManager is the base struct that manages the collection
 // of current http session models.
 type SessionManager struct {
+	// SessionIDKey is the name of the cookie value that will store the unique ID of the browser
+	// session
 	SessionIDKey   string
+
+	// Sessions is the collection of browser session objects
 	Sessions       []*Session
+
+	// SessionTimeout is the duration of time that a browser session will stay in memory between
+	// requests / activity from the user
 	SessionTimeout time.Duration
 }
 

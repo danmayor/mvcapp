@@ -5,9 +5,6 @@
 
 	This file defines a generic "Route Map". Route maps are intended to define the controller
 	object to be used for requests to the provided controller section of the requested url.
-
-	This package is released under as open source under the LGPL-3.0 which can be found:
-	https://opensource.org/licenses/LGPL-3.0
 */
 
 package mvcapp
@@ -15,7 +12,12 @@ package mvcapp
 // RouteMap is used to map the controller portion of the requested URL
 // to a controller struct that implements IController
 type RouteMap struct {
+	// ControllerName is controller portion of the url that this route map responds to
 	ControllerName   string
+
+	// CreateController is the New*Controller method we call to invoke an instance of
+	// the core controller object (E.g. custom controllers simply provide and register
+	// a method to this map)
 	CreateController ControllerCreator
 }
 
