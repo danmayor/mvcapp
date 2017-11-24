@@ -12,8 +12,6 @@ package mvcapp
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 // Application is our global scope object (E.g. application wide configuration
@@ -48,8 +46,10 @@ func NewApplication() *Application {
 		HTTPSPort:      443,
 	}
 
-	// I know, it's weird... Just roll with it
 	rtn.RouteManager.SessionManager = rtn.SessionManager
+
+	SetLogFilename(fmt.Sprintf("%s/%s", GetApplicationPath(), "mvcapp.log"))
+	LogMessage("Application initialized")
 	return rtn
 }
 
@@ -101,23 +101,4 @@ func (app *Application) RedirectSecure(w http.ResponseWriter, req *http.Request)
 func (app *Application) RedirectSecureJS(w http.ResponseWriter, req *http.Request) {
 	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='https://%s%s';</script></body>", app.DomainName, req.URL.Path)
 	w.Write([]byte(data))
-}
-
-// appPath is used internally so that we don't have to query the os args
-// every time we ask to GetApplicationPath
-var appPath = ""
-
-// GetApplicationPath should return the full path to the executable.
-// This is the root of the site and where the assembly file is
-func GetApplicationPath() string {
-	if appPath == "" {
-		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			appPath = "."
-		}
-
-		appPath = dir
-	}
-
-	return appPath
 }

@@ -14,8 +14,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/digivance/applog"
 )
 
 // ControllerCallback is a simple declaration to provide a callback method
@@ -252,7 +250,7 @@ func (controller *Controller) WriteResponse(result *ActionResult) error {
 				result = controller.NotFoundResult()
 
 				if err = result.Execute(controller.Response); err != nil {
-					applog.WriteError("Failed to display default 404 page!", err)
+					LogError(err.Error())
 				}
 			} else {
 				result = controller.ErrorResult(err)

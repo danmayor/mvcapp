@@ -12,12 +12,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
-
-	"github.com/digivance/applog"
 )
 
 // ActionResult is a base level struct that implements the Execute
@@ -57,13 +54,13 @@ func NewViewResult(templates []string, model interface{}) *ActionResult {
 	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(templates...)
 
 	if err != nil {
-		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
+		LogError(err.Error())
 		return nil
 	}
 
 	buffer := new(bytes.Buffer)
 	if err = page.ExecuteTemplate(buffer, "mvcapp", model); err != nil {
-		applog.WriteString(fmt.Sprintf("Failed to execute view result: %s", err.Error()))
+		LogError(err.Error())
 		return nil
 	}
 
@@ -74,7 +71,7 @@ func NewViewResult(templates []string, model interface{}) *ActionResult {
 func NewJSONResult(payload interface{}) *ActionResult {
 	data, err := json.Marshal(payload)
 	if err != nil || len(data) < 0 {
-		applog.WriteError("Failed to serialize json payload", err)
+		LogError(err.Error())
 		return nil
 	}
 

@@ -16,8 +16,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/digivance/applog"
 )
 
 // ControllerCreator is a delegate to the creation method of a controller
@@ -210,7 +208,7 @@ func (manager *RouteManager) handleController(response http.ResponseWriter, requ
 	if controller.ContinuePipeline {
 		result := icontroller.Execute()
 		if err := icontroller.WriteResponse(result); err != nil {
-			applog.WriteError("Failed to display default error page!", err)
+			LogError(err.Error())
 			if controller.AfterExecute != nil {
 				controller.AfterExecute()
 			}
@@ -244,12 +242,12 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 				if controller.NotFoundResult != nil {
 					result := controller.NotFoundResult()
 					if err := result.Execute(response); err != nil {
-						applog.WriteError("Failed to render 404 result", err)
+						LogError(err.Error())
 					}
 				} else {
 					result := controller.DefaultNotFoundPage()
 					if err := result.Execute(response); err != nil {
-						applog.WriteError("Failed to render 404 result", err)
+						LogError(err.Error())
 					}
 				}
 			}
