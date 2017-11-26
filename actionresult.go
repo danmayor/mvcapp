@@ -11,7 +11,6 @@ package mvcapp
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"html/template"
 	"net/http"
 	"strings"
@@ -70,8 +69,11 @@ func NewViewResult(templates []string, model interface{}) *ActionResult {
 // NewJSONResult returns a new JSONResult with the payload json encoded to Data
 func NewJSONResult(payload interface{}) *ActionResult {
 	data, err := json.Marshal(payload)
-	if err != nil || len(data) < 0 {
-		LogError(err.Error())
+	if len(data) <= 0 || payload == nil {
+		if err != nil {
+			LogError(err.Error())
+		}
+
 		return nil
 	}
 
@@ -89,7 +91,7 @@ func (result *ActionResult) AddCookie(cookie *http.Cookie) {
 }
 
 // Execute writes the header, cookies and data of this action result to the client.
-func (result ActionResult) Execute(response http.ResponseWriter) error {
+func (result ActionResult) Execute(response http.ResponseWriter) {
 	for k, v := range result.Headers {
 		response.Header().Set(k, v)
 	}
@@ -98,11 +100,6 @@ func (result ActionResult) Execute(response http.ResponseWriter) error {
 		http.SetCookie(response, cookie)
 	}
 
-	if len(result.Data) <= 0 {
-		return errors.New("No response from request")
-	}
-
 	response.WriteHeader(result.StatusCode)
 	response.Write(result.Data)
-	return nil
 }

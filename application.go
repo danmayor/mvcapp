@@ -10,6 +10,7 @@
 package mvcapp
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -32,8 +33,14 @@ type Application struct {
 	// HTTPPort is the port used to stream plain text http protocol
 	HTTPPort int
 
+	// HTTPServer is the http.Server object being used to host http transport
+	HTTPServer *http.Server
+
 	// HTTPSPort is the port used to stream TLS secured http protocol
 	HTTPSPort int
+
+	// HTTPSServer is the http.Server object being used to host https transport
+	HTTPSServer *http.Server
 }
 
 // NewApplication returns a new default MVC Application object
@@ -43,7 +50,9 @@ func NewApplication() *Application {
 		RouteManager:   NewRouteManager(),
 		BindAddress:    "",
 		HTTPPort:       80,
+		HTTPServer:     nil,
 		HTTPSPort:      443,
+		HTTPSServer:    nil,
 	}
 
 	rtn.RouteManager.SessionManager = rtn.SessionManager
@@ -53,37 +62,86 @@ func NewApplication() *Application {
 	return rtn
 }
 
+// Stop is used to stop hosting this MVC Application. You can call one of the Run methods to restart
+func (app *Application) Stop() {
+	if app.HTTPServer != nil {
+		app.HTTPServer.Shutdown(nil)
+	}
+
+	if app.HTTPSServer != nil {
+		app.HTTPSServer.Shutdown(nil)
+	}
+}
+
 // Run is used to execute this MVC Application (direct http socket server)
 func (app *Application) Run() error {
+	if app.HTTPServer != nil {
+		return errors.New("Can not run application, HTTPServer already in use")
+	}
+
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
-	return http.ListenAndServe(addr, http.HandlerFunc(app.RouteManager.HandleRequest))
+	app.HTTPServer = &http.Server{Addr: addr}
+	app.HTTPServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+
+	return app.HTTPServer.ListenAndServe()
 }
 
 // RunSecure is used to execute this MVC Application over HTTPS/TLS (direct https socket server)
 func (app *Application) RunSecure(certFile string, keyFile string) error {
+	if app.HTTPSServer != nil {
+		return errors.New("Can not RunSecure, HTTPSServer already in use")
+	}
+
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
-	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+	app.HTTPSServer = &http.Server{Addr: addr}
+	app.HTTPServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+
+	return app.HTTPSServer.ListenAndServeTLS(certFile, keyFile)
 }
 
 // RunForcedSecure is used to execute this MVC Application in both HTTP and
 // HTTPS/TLS modes, the HTTP mode will force redirection to HTTPS only. (direct http and https
 // socket servers)
 func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
+	if app.HTTPServer != nil {
+		return errors.New("Can not RunForcedSecure, HTTPServer already in use")
+	}
+
+	if app.HTTPSServer != nil {
+		return errors.New("Can not RunForcedSecure, HTTPSServer already in use")
+	}
+
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
-	go http.ListenAndServe(addr, http.HandlerFunc(app.RedirectSecure))
+	app.HTTPServer = &http.Server{Addr: addr}
+	app.HTTPServer.Handler = http.HandlerFunc(app.RedirectSecure)
+	go app.HTTPServer.ListenAndServe()
 
 	addr = fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
-	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+	app.HTTPSServer = &http.Server{Addr: addr}
+	app.HTTPSServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+	return app.HTTPSServer.ListenAndServeTLS(certFile, keyFile)
 }
 
 // RunForcedSecureJS is used to run a web application in forced TLS secure mode by returning
 // a simple page with javascript that redirects the browser to https://DomainName/path
 func (app *Application) RunForcedSecureJS(certFile string, keyFile string) error {
+	if app.HTTPServer != nil {
+		return errors.New("Can not RunForcedSecureJS, HTTPServer already in use")
+	}
+
+	if app.HTTPSServer != nil {
+		return errors.New("Can not RunForcedSecure, HTTPSServer already in use")
+	}
+
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
-	go http.ListenAndServe(addr, http.HandlerFunc(app.RedirectSecureJS))
+	app.HTTPServer = &http.Server{Addr: addr}
+	app.HTTPServer.Handler = http.HandlerFunc(app.RedirectSecureJS)
+	go app.HTTPServer.ListenAndServe()
 
 	addr = fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
-	return http.ListenAndServeTLS(addr, certFile, keyFile, http.HandlerFunc(app.RouteManager.HandleRequest))
+	app.HTTPSServer = &http.Server{Addr: addr}
+	app.HTTPSServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+	return app.HTTPSServer.ListenAndServeTLS(certFile, keyFile)
 }
 
 // RedirectSecure is used to submit an http redirect from http to https when forcing secure

@@ -10,6 +10,7 @@
 package mvcapp
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -39,7 +40,7 @@ type IController interface {
 	Execute() *ActionResult
 
 	// WriteResponse should write the provided action result to the response stream
-	WriteResponse(*ActionResult) error
+	WriteResponse(*ActionResult)
 
 	// RedirectJS is a method that should write an html page with javascript redirect
 	// function directly to the response stream (this can be used to lock pages from
@@ -207,7 +208,13 @@ func (controller *Controller) Execute() *ActionResult {
 	params := []string{}
 
 	if strings.Contains(strings.ToLower(controller.RequestedPath), "/") && controller.RequestedPath != "/" {
-		parts := strings.Split(controller.RequestedPath, "/")
+		// Strips the leading / so we prevent the empty first parts element below
+		url := controller.RequestedPath
+		if strings.HasPrefix(url, "/") {
+			url = url[1:]
+		}
+
+		parts := strings.Split(url, "/")
 
 		if len(parts) > 1 {
 			actionName = parts[1]
@@ -229,14 +236,18 @@ func (controller *Controller) Execute() *ActionResult {
 		}
 	}
 
-	return nil
+	if controller.NotFoundResult != nil {
+		return controller.NotFoundResult()
+	}
+
+	return controller.DefaultNotFoundPage()
 }
 
 // WriteResponse is called from the route manager to execute the result that was constructed
 // from this controllers Execute method (E.g. the result returned from the action if mapped)
-func (controller *Controller) WriteResponse(result *ActionResult) error {
+func (controller *Controller) WriteResponse(result *ActionResult) {
 	if controller.ContinuePipeline {
-		if result == nil {
+		if result == nil || len(result.Data) <= 0 {
 			if controller.NotFoundResult != nil {
 				result = controller.NotFoundResult()
 			} else {
@@ -244,25 +255,8 @@ func (controller *Controller) WriteResponse(result *ActionResult) error {
 			}
 		}
 
-		if err := result.Execute(controller.Response); err != nil {
-			msg := err.Error()
-			if strings.EqualFold(msg, "No response from request") {
-				result = controller.NotFoundResult()
-
-				if err = result.Execute(controller.Response); err != nil {
-					LogError(err.Error())
-				}
-			} else {
-				result = controller.ErrorResult(err)
-
-				if err = result.Execute(controller.Response); err != nil {
-					return err
-				}
-			}
-		}
+		result.Execute(controller.Response)
 	}
-
-	return nil
 }
 
 // RedirectJS is a helper method that will write a very simple html page using the
@@ -298,6 +292,14 @@ func (controller *Controller) Result(data []byte) *ActionResult {
 func (controller *Controller) View(templates []string, model interface{}) *ActionResult {
 	templateList := MakeTemplateList(strings.ToLower(controller.ControllerName), templates)
 	res := NewViewResult(templateList, model)
+	if res == nil {
+		if controller.ErrorResult != nil {
+			return controller.ErrorResult(errors.New("Internal server error, failed to render page"))
+		}
+
+		return controller.DefaultErrorPage(errors.New("Internal server error, failed to render page"))
+	}
+
 	res.Cookies = controller.Cookies
 	return res
 }
@@ -305,6 +307,10 @@ func (controller *Controller) View(templates []string, model interface{}) *Actio
 // JSON returns a new JSONResult object of the provided payload
 func (controller *Controller) JSON(payload interface{}) *ActionResult {
 	res := NewJSONResult(payload)
+	if res == nil {
+		return NewJSONResult(false)
+	}
+
 	res.Cookies = controller.Cookies
 	return res
 }
@@ -333,7 +339,7 @@ func (controller *Controller) DefaultNotFoundPage() *ActionResult {
 	data := []byte(html)
 	res := NewActionResult(data)
 	res.Cookies = controller.Cookies
-	res.StatusCode = 400
+	res.StatusCode = 404
 
 	return res
 }

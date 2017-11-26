@@ -100,9 +100,7 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 				}
 			}
 		} else {
-			if err := icontroller.WriteResponse(result); err != nil {
-				LogError(err.Error())
-			}
+			icontroller.WriteResponse(result)
 		}
 	}
 
@@ -184,6 +182,8 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			controller.RequestedPath = path
 			controller.QueryString = queryString
 			controller.Fragment = fragment
+
+			controller.Cookies = request.Cookies()
 
 			return icontroller, controller
 		}
