@@ -1,3 +1,12 @@
+/*
+	Digivance MVC Application Framework - Unit Tests
+	Route Manager Feature Tests
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines the version 0.1.0 compatibility of routemanager.go functions. These functions are written
+	to demonstrate and test the intended use cases of the functions in routemanager.go
+*/
+
 package mvcapp_test
 
 import (
