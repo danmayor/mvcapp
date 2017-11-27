@@ -75,8 +75,6 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 						sharedControllerPath := fmt.Sprintf("%s/views/shared/%s/%s", GetApplicationPath(), controllerName, template)
 						if _, err := os.Stat(sharedControllerPath); !os.IsNotExist(err) {
 							rtn = append(rtn, sharedControllerPath)
-						} else {
-							// TODO: Add 404 page here
 						}
 					}
 				}
