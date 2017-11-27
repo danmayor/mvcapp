@@ -80,7 +80,7 @@ func (session *Session) Remove(key string) {
 	for k, v := range session.Values {
 		if strings.EqualFold(v.Key, key) {
 			if k > 1 {
-				session.Values = append(session.Values[:k-1], session.Values[k+1:]...)
+				session.Values = append(session.Values[:k], session.Values[k+1:]...)
 				return
 			}
 
