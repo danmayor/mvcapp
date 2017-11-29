@@ -147,6 +147,10 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 	// Get the browserSession from the SessionManager and set
 	// the controllers reference to it
 	browserSession := manager.SessionManager.GetSession(browserSessionID)
+	if browserSession == nil {
+		browserSession = manager.SessionManager.CreateSession(browserSessionID)
+	}
+
 	controller.Session = browserSession
 	controller.Session.ActivityDate = time.Now()
 	controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})

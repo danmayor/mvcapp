@@ -44,7 +44,7 @@ func (manager *SessionManager) GetSession(id string) *Session {
 		}
 	}
 
-	return manager.CreateSession(id)
+	return nil
 }
 
 // Contains detects if the requested id (key) exists in this session collection
@@ -74,7 +74,7 @@ func (manager *SessionManager) SetSession(session *Session) {
 	res := manager.GetSession(id)
 
 	if res != nil {
-		res = session
+		res.Values = append([]*SessionValue{}, session.Values...)
 	} else {
 		manager.Sessions = append(manager.Sessions, session)
 	}
@@ -86,7 +86,7 @@ func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
 		if val.ID == id {
 			if key > 1 {
-				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key:]...)
+				manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
 			} else {
 				if key == 1 {
 					manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
@@ -104,13 +104,13 @@ func (manager *SessionManager) CleanSessions() {
 
 	for key, val := range manager.Sessions {
 		if val.ActivityDate.Before(expired) {
-			if key > 0 {
-				manager.Sessions = append(manager.Sessions[:key-1], manager.Sessions[key+1:]...)
+			if key > 1 {
+				manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
 			} else {
-				if len(manager.Sessions) > 1 {
-					manager.Sessions = manager.Sessions[1:]
+				if key == 1 {
+					manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
 				} else {
-					manager.Sessions = make([]*Session, 0)
+					manager.Sessions = manager.Sessions[1:]
 				}
 			}
 		}
