@@ -106,6 +106,7 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
 
+			controller.ControllerName = controllerName
 			controller.Response = response
 			controller.DefaultAction = manager.DefaultAction
 			controller.RequestedPath = path

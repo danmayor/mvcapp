@@ -1,6 +1,7 @@
 package mvcapp
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -173,40 +174,70 @@ func SetLogLevel(level int) {
 }
 
 // LogMessage writes an information message to the log file if our internal log level is 3
-func LogMessage(message string) {
-	if logLevel >= 3 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().String(), message))
+func LogMessage(message string) error {
+	if logLevel < 3 {
+		return errors.New("Failed to write information message due to log level")
 	}
+
+	if logFilename == "" {
+		return errors.New("Failed to write information message due to log filename")
+	}
+
+	f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogWarning writes a warning message to the log file if our internal log level is >= 2
-func LogWarning(message string) {
-	if logLevel >= 2 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().String(), message))
+func LogWarning(message string) error {
+	if logLevel < 2 {
+		return errors.New("Failed to write warning message due to log level")
 	}
+
+	if logFilename == "" {
+		return errors.New("Failed to write warning message due to log filename")
+	}
+
+	f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return nil
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogError writes an error message to the log file if our internal log level is >= 1
-func LogError(message string) {
-	if logLevel >= 1 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message))
+func LogError(message string) error {
+	if logLevel < 1 {
+		return errors.New("Failed to write error message due to log level")
 	}
+
+	if logFilename == "" {
+		return errors.New("Failed to write error message due to log filename")
+	}
+
+	f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }

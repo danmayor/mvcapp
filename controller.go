@@ -275,6 +275,9 @@ func (controller *Controller) RedirectJS(url string) {
 	res := NewActionResult([]byte(data))
 	res.StatusCode = 301
 	res.Cookies = controller.Cookies
+	res.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+	res.Headers["Pragma"] = "no-cache"
+	res.Headers["Expires"] = "0"
 
 	res.Execute(controller.Response)
 }
