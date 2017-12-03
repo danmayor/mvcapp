@@ -1,11 +1,29 @@
 package mvcapp
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
+)
+
+const (
+	// LogLevelNone is wreckless...
+	LogLevelNone = 0
+
+	// LogLevelError is the default, only critical errors are reported
+	LogLevelError = 1
+
+	// LogLevelWarning is a bit more verbose and will report errors that were handled internally
+	LogLevelWarning = 2
+
+	// LogLevelInfo is more verbose and will report generic workflow status as it goes
+	LogLevelInfo = 3
+
+	// LogLevelTrace is the most verbose and should only be used when debugging or troubleshooting
+	LogLevelTrace = 4
 )
 
 // TemplateExists checks the standard folder paths based on the provided controllerName
@@ -142,71 +160,125 @@ func GetApplicationPath() string {
 	return appPath
 }
 
-// logFilename is used internally to hold the name of the file that holds our
+// LogFilename is used internally to hold the name of the file that holds our
 // application logs
-var logFilename = ""
+var LogFilename = ""
 
 // GetLogFilename returns the current, or default log file that we will write to
 func GetLogFilename() string {
-	return logFilename
+	return LogFilename
 }
 
 // SetLogFilename will set the filename that log messages will be written to
 func SetLogFilename(filename string) {
-	logFilename = filename
+	LogFilename = filename
 }
 
-// logLevel is the internal value representing what levels of log messages are written
+// LogLevel is the internal value representing what levels of log messages are written
 // to our log file. Where 0 = Off 1 = Errors Only, 2 = Warnings (Such as 404),
-// 3 = Verbose (It'll say a lot)
-var logLevel = 1
+// 3 = Verbose (It'll say a lot), 4 = Debug Tracing (Won't shut up)
+var LogLevel = LogLevelError
 
 // GetLogLevel returns the level of log messages that are written to our log file
 func GetLogLevel() int {
-	return logLevel
+	return LogLevel
 }
 
 // SetLogLevel sets the internal log level of messages that are written to our log file
 // Where 0 = Off 1 = Errors Only, 2 = Warnings (Such as 404), 3 = Verbose (It'll say a lot)
 func SetLogLevel(level int) {
-	logLevel = level
+	LogLevel = level
 }
 
 // LogMessage writes an information message to the log file if our internal log level is 3
-func LogMessage(message string) {
-	if logLevel >= 3 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().String(), message))
+func LogMessage(message string) error {
+	if LogLevel < LogLevelInfo {
+		return errors.New("Failed to write information message due to log level")
 	}
+
+	if LogFilename == "" {
+		return errors.New("Failed to write information message due to log filename")
+	}
+
+	f, err := os.OpenFile(LogFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogWarning writes a warning message to the log file if our internal log level is >= 2
-func LogWarning(message string) {
-	if logLevel >= 2 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().String(), message))
+func LogWarning(message string) error {
+	if LogLevel < LogLevelWarning {
+		return errors.New("Failed to write warning message due to log level")
 	}
+
+	if LogFilename == "" {
+		return errors.New("Failed to write warning message due to log filename")
+	}
+
+	f, err := os.OpenFile(LogFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return nil
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogError writes an error message to the log file if our internal log level is >= 1
-func LogError(message string) {
-	if logLevel >= 1 && logFilename != "" {
-		f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-		if err != nil {
-			return
-		}
-
-		defer f.Close()
-		f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message))
+func LogError(message string) error {
+	if LogLevel < LogLevelError {
+		return errors.New("Failed to write error message due to log level")
 	}
+
+	if LogFilename == "" {
+		return errors.New("Failed to write error message due to log filename")
+	}
+
+	f, err := os.OpenFile(LogFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// TraceLog is used to log debug tracing messages (such as the most verbose helping the reader to track the
+// flow of execution through the program)
+func TraceLog(message string) error {
+	if LogLevel < LogLevelTrace {
+		return errors.New("Failed to write trace log message due to log level")
+	}
+
+	if LogFilename == "" {
+		return errors.New("Failed to write trace log message due to log filename")
+	}
+
+	f, err := os.OpenFile(LogFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Debug Trace: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
 }

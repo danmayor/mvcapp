@@ -105,12 +105,24 @@ func (manager *SessionManager) CleanSessions() {
 	for key, val := range manager.Sessions {
 		if val.ActivityDate.Before(expired) {
 			if key > 1 {
-				manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
+				if len(manager.Sessions) > 1 {
+					manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
+				} else {
+					manager.Sessions = manager.Sessions[:key]
+				}
 			} else {
 				if key == 1 {
-					manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
+					if len(manager.Sessions) > 1 {
+						manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
+					} else {
+						manager.Sessions = append([]*Session{}, manager.Sessions[0])
+					}
 				} else {
-					manager.Sessions = manager.Sessions[1:]
+					if len(manager.Sessions) > 1 {
+						manager.Sessions = manager.Sessions[1:]
+					} else {
+						manager.Sessions = []*Session{}
+					}
 				}
 			}
 		}

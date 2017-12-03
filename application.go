@@ -57,7 +57,10 @@ func NewApplication() *Application {
 
 	rtn.RouteManager.SessionManager = rtn.SessionManager
 
-	SetLogFilename(fmt.Sprintf("%s/%s", GetApplicationPath(), "mvcapp.log"))
+	if LogFilename == "" {
+		SetLogFilename(fmt.Sprintf("%s/%s", GetApplicationPath(), "mvcapp.log"))
+	}
+
 	LogMessage("Application initialized")
 	return rtn
 }

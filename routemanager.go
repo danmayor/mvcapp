@@ -54,7 +54,7 @@ type RouteManager struct {
 // controller and action tokens set to "Home" and "Index".
 func NewRouteManager() *RouteManager {
 	return &RouteManager{
-		SessionIDKey: "MvcApp.SessionID",
+		SessionIDKey: "SessionID",
 
 		DefaultController: "Home",
 		DefaultAction:     "Index",
@@ -100,12 +100,15 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 	path := strings.TrimLeft(request.URL.Path, "/")
 	controllerName := manager.parseControllerName(path)
 
+	TraceLog(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
+
 	for _, route := range manager.Routes {
 		if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(controllerName)) {
 			// Construct the appropriate controller
 			icontroller := route.CreateController(request)
 			controller := icontroller.ToController()
 
+			controller.ControllerName = controllerName
 			controller.Response = response
 			controller.DefaultAction = manager.DefaultAction
 			controller.RequestedPath = path
@@ -113,10 +116,12 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			controller.Fragment = request.URL.Fragment
 			controller.Cookies = request.Cookies()
 
+			TraceLog(fmt.Sprintf("Constructed controller: %s", controllerName))
 			return icontroller, controller
 		}
 	}
 
+	TraceLog(fmt.Sprintf("Failed to obtain controller for request to: %s", controllerName))
 	return nil, nil
 }
 
@@ -170,20 +175,24 @@ func (manager *RouteManager) handleFile(response http.ResponseWriter, request *h
 
 	f, err := os.Stat(path)
 	if os.IsNotExist(err) {
+		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
 		return false
 	}
 
 	// refuse to serve directory contents for security
 	mode := f.Mode()
 	if mode.IsDir() {
+		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
 		return false
 	}
 
 	if manager.validPath(path) {
+		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
 		http.ServeFile(response, request, path)
 		return true
 	}
 
+	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
 	return false
 }
 
@@ -211,12 +220,15 @@ func (manager *RouteManager) validPath(path string) bool {
 // RegisterController is used to map a custom controller object to the
 // controller section of the requested url (E.g. "site.com/CONTROLLER/action")
 func (manager *RouteManager) RegisterController(name string, creator ControllerCreator) {
+	LogMessage(fmt.Sprintf("Registering controller for: %s", name))
 	manager.Routes = append(manager.Routes, NewRouteMap(name, creator))
 }
 
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
+	TraceLog(fmt.Sprintf("Handling request: %s", request.URL.String()))
+
 	// Gets the controller objects responsible for this route (if they exist)
 	icontroller, controller := manager.getController(response, request)
 
@@ -238,9 +250,11 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 			controller.DefaultErrorPage(errors.New("Invalid path requested")).Execute(response)
 		}
 
+		LogWarning(fmt.Sprintf("Request to invalid path: %s", request.URL.String()))
 		return
 	}
 
+	// If the controller is nil lets try to serve a raw file
 	if controller == nil {
 		if manager.handleFile(response, request) {
 			return
@@ -248,6 +262,13 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 		request, _ = http.NewRequest("GET", manager.DefaultController, nil)
 		icontroller, controller = manager.getController(response, request)
+	}
+
+	if controller == nil {
+		LogError("Critical failure, could not load controller by request or the default controller!")
+		response.WriteHeader(500)
+		response.Write([]byte("Failed to handle request, please try again"))
+		return
 	}
 
 	// If the route manager has a session manager, we'll fire that bad boy up
