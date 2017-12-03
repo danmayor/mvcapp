@@ -298,6 +298,8 @@ func (controller *Controller) View(templates []string, model interface{}) *Actio
 	templateList := MakeTemplateList(strings.ToLower(controller.ControllerName), templates)
 	res := NewViewResult(templateList, model)
 	if res == nil {
+		LogError(fmt.Sprintf("Failed to create view result for:\n%s\nUsing Model:\n%s", templates, model))
+
 		if controller.ErrorResult != nil {
 			return controller.ErrorResult(errors.New("Internal server error, failed to render page"))
 		}
@@ -313,6 +315,7 @@ func (controller *Controller) View(templates []string, model interface{}) *Actio
 func (controller *Controller) JSON(payload interface{}) *ActionResult {
 	res := NewJSONResult(payload)
 	if res == nil {
+		LogError(fmt.Sprintf("Failed to encode payload:\n%s", payload))
 		return NewJSONResult(false)
 	}
 
@@ -329,6 +332,7 @@ func (controller *Controller) ToController() *Controller {
 
 // DefaultErrorPage will attempt to render the built in error page
 func (controller *Controller) DefaultErrorPage(err error) *ActionResult {
+	LogWarning(fmt.Sprintf("Servind default error page because: %s", err.Error()))
 	html := fmt.Sprintf("<html><head><title>Server Error</title></head><body><h1>Server Error :(</h1>%s</body></html>", err.Error())
 	data := []byte(html)
 	res := NewActionResult(data)
@@ -340,6 +344,7 @@ func (controller *Controller) DefaultErrorPage(err error) *ActionResult {
 
 // DefaultNotFoundPage will attempt to render the built in 404 page
 func (controller *Controller) DefaultNotFoundPage() *ActionResult {
+	LogWarning(fmt.Sprintf("Serving default not found page because: %s", controller.RequestedPath))
 	html := fmt.Sprintf("<html><head><title>Content Not Found</title></head><body><h1>Content Missing</h1>We're sorry, we could not find '%s' from this app :(</body></html>", controller.RequestedPath)
 	data := []byte(html)
 	res := NewActionResult(data)

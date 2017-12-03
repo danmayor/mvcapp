@@ -228,6 +228,7 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
 	TraceLog(fmt.Sprintf("Handling request: %s", request.URL.String()))
+
 	// Gets the controller objects responsible for this route (if they exist)
 	icontroller, controller := manager.getController(response, request)
 
