@@ -238,7 +238,7 @@ func LogWarning(message string) error {
 
 // LogError writes an error message to the log file if our internal log level is >= 1
 func LogError(message string) error {
-	if LogLevel <= LogLevelError {
+	if LogLevel < LogLevelError {
 		return errors.New("Failed to write error message due to log level")
 	}
 
@@ -262,7 +262,7 @@ func LogError(message string) error {
 // TraceLog is used to log debug tracing messages (such as the most verbose helping the reader to track the
 // flow of execution through the program)
 func TraceLog(message string) error {
-	if LogLevel <= LogLevelTrace {
+	if LogLevel < LogLevelTrace {
 		return errors.New("Failed to write trace log message due to log level")
 	}
 
