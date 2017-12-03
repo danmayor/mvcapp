@@ -80,17 +80,27 @@ func (session *Session) Remove(key string) {
 	for k, v := range session.Values {
 		if strings.EqualFold(v.Key, key) {
 			if k > 1 {
-				session.Values = append(session.Values[:k], session.Values[k+1:]...)
+				if len(session.Values) > k {
+					session.Values = append(session.Values[:k], session.Values[k+1:]...)
+				} else {
+					session.Values = session.Values[:k]
+				}
 				return
 			}
 
 			if k == 1 {
-				session.Values = append(session.Values[2:], session.Values[0])
+				if len(session.Values) > 1 {
+					session.Values = append(session.Values[2:], session.Values[0])
+				} else {
+					session.Values = append([]*SessionValue{}, session.Values[0])
+				}
 				return
 			}
 
-			if k == 0 {
+			if k == 0 && len(session.Values) > 1 {
 				session.Values = session.Values[1:]
+			} else {
+				session.Values = []*SessionValue{}
 			}
 		}
 	}
