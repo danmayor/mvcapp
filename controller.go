@@ -273,7 +273,7 @@ func (controller *Controller) RedirectJS(url string) {
 	// We manually write the cookies to the browser here because we'll be breaking the
 	// standard pipelint (eg ContinuePipeline = false)
 	res := NewActionResult([]byte(data))
-	res.StatusCode = 301
+	res.StatusCode = 200
 	res.Cookies = controller.Cookies
 	res.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 	res.Headers["Pragma"] = "no-cache"
