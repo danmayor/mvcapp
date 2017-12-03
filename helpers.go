@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+const (
+	LogLevelNone    = 0
+	LogLevelError   = 1
+	LogLevelWarning = 2
+	LogLevelInfo    = 3
+	LogLevelTrade   = 4
+)
+
 // TemplateExists checks the standard folder paths based on the provided controllerName
 // to see if the template file can be found. (See MakeTemplateList for path structure)
 func TemplateExists(controllerName string, template string) bool {
@@ -221,7 +229,7 @@ func LogWarning(message string) error {
 
 // LogError writes an error message to the log file if our internal log level is >= 1
 func LogError(message string) error {
-	if logLevel < 1 {
+	if logLevel <= 1 {
 		return errors.New("Failed to write error message due to log level")
 	}
 
@@ -236,6 +244,28 @@ func LogError(message string) error {
 
 	defer f.Close()
 	if _, err := f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TraceLog(message string) error {
+	if logLevel <= 4 {
+		return errors.New("Failed to write trace log message due to log level")
+	}
+
+	if logFilename == "" {
+		return errors.New("Failed to write trace log message due to log filename")
+	}
+
+	f, err := os.OpenFile(logFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Debug Trace: %s\r\n\r\n", time.Now().String(), message)); err != nil {
 		return err
 	}
 

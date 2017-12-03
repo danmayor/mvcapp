@@ -268,7 +268,7 @@ func (controller *Controller) WriteResponse(result *ActionResult) {
 // AfterExecute.
 func (controller *Controller) RedirectJS(url string) {
 	data := fmt.Sprintf("<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='%s';</script></body></html>", url)
-	controller.ContinuePipeline = false
+	TraceLog(fmt.Sprintf("Redirecting user with javascript, payload to follow:\n%s", data))
 
 	// We manually write the cookies to the browser here because we'll be breaking the
 	// standard pipelint (eg ContinuePipeline = false)
@@ -279,7 +279,9 @@ func (controller *Controller) RedirectJS(url string) {
 	res.Headers["Pragma"] = "no-cache"
 	res.Headers["Expires"] = "0"
 
+	TraceLog("Payload and headers set for redirection via javascript, submitting response.")
 	res.Execute(controller.Response)
+	controller.ContinuePipeline = false
 }
 
 // Result returns a new ActionResult and automatically assigns the controllers cookies
