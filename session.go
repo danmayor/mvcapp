@@ -11,7 +11,6 @@
 package mvcapp
 
 import (
-	"strings"
 	"time"
 )
 
@@ -38,7 +37,7 @@ type Session struct {
 	ActivityDate time.Time
 
 	// Values is the collection of key value pair data stored in this browser session
-	Values []*SessionValue
+	Values map[string]interface{}
 }
 
 // NewSession returns a new Session model
@@ -47,61 +46,22 @@ func NewSession() *Session {
 		ID:           RandomString(32),
 		CreatedDate:  time.Now(),
 		ActivityDate: time.Now(),
-		Values:       make([]*SessionValue, 0),
+		Values:       make(map[string]interface{}, 0),
 	}
 }
 
 // Get returns the interface{} of raw data value of the requested session value
 func (session *Session) Get(key string) interface{} {
-	for _, v := range session.Values {
-		if strings.EqualFold(v.Key, key) {
-			return v.Value
-		}
-	}
-
-	return nil
+	return session.Values[key]
 }
 
 // Set will overwrite or create a new value with the provided interface{} of raw data
 func (session *Session) Set(key string, value interface{}) {
-	for k, v := range session.Values {
-		if strings.EqualFold(v.Key, key) {
-			session.Values[k].Value = value
-			return
-		}
-	}
-
-	session.Values = append(session.Values, &SessionValue{Key: key, Value: value})
+	session.Values[key] = value
 }
 
 // Remove will remove the session value, identified by the provided key from this users
 // session value collection
 func (session *Session) Remove(key string) {
-	for k, v := range session.Values {
-		if strings.EqualFold(v.Key, key) {
-			if k > 1 {
-				if len(session.Values) > k {
-					session.Values = append(session.Values[:k], session.Values[k+1:]...)
-				} else {
-					session.Values = session.Values[:k]
-				}
-				return
-			}
-
-			if k == 1 {
-				if len(session.Values) > 1 {
-					session.Values = append(session.Values[2:], session.Values[0])
-				} else {
-					session.Values = append([]*SessionValue{}, session.Values[0])
-				}
-				return
-			}
-
-			if k == 0 && len(session.Values) > 1 {
-				session.Values = session.Values[1:]
-			} else {
-				session.Values = []*SessionValue{}
-			}
-		}
-	}
+	delete(session.Values, key)
 }
