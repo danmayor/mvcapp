@@ -174,6 +174,20 @@ func SetLogFilename(filename string) {
 	LogFilename = filename
 }
 
+// LogDateFormat is the golang time formatting string used when rendering the date
+// and time portion of logging methods
+var LogDateFormat = "1/2/2006 15:04:05 -07:00"
+
+// GetLogDateFormat returns the current Golang time formatting string being used in logging
+func GetLogDateFormat() string {
+	return LogDateFormat
+}
+
+// SetLogDateFormat sets the current Golang time formatting string being used in logging
+func SetLogDateFormat(format string) {
+	LogDateFormat = format
+}
+
 // LogLevel is the internal value representing what levels of log messages are written
 // to our log file. Where 0 = Off 1 = Errors Only, 2 = Warnings (Such as 404),
 // 3 = Verbose (It'll say a lot), 4 = Debug Tracing (Won't shut up)
@@ -206,7 +220,7 @@ func LogMessage(message string) error {
 	}
 
 	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().String(), message)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Information: %s\r\n", time.Now().Format(LogDateFormat), message)); err != nil {
 		return err
 	}
 
@@ -229,7 +243,7 @@ func LogWarning(message string) error {
 	}
 
 	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().String(), message)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Warning: %s\r\n", time.Now().Format(LogDateFormat), message)); err != nil {
 		return err
 	}
 
@@ -252,7 +266,7 @@ func LogError(message string) error {
 	}
 
 	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Critical: %s\r\n\r\n", time.Now().Format(LogDateFormat), message)); err != nil {
 		return err
 	}
 
@@ -276,7 +290,7 @@ func TraceLog(message string) error {
 	}
 
 	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("[%s] Debug Trace: %s\r\n\r\n", time.Now().String(), message)); err != nil {
+	if _, err := f.WriteString(fmt.Sprintf("[%s] Debug Trace: %s\r\n", time.Now().Format(LogDateFormat), message)); err != nil {
 		return err
 	}
 
