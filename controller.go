@@ -311,6 +311,11 @@ func (controller *Controller) View(templates []string, model interface{}) *Actio
 	return res
 }
 
+// SimpleView takes the provided variadic strings and uses them to call controller.View(templates, controller)
+func (controller *Controller) SimpleView(templates ...string) *ActionResult {
+	return controller.View(templates, controller)
+}
+
 // JSON returns a new JSONResult object of the provided payload
 func (controller *Controller) JSON(payload interface{}) *ActionResult {
 	res := NewJSONResult(payload)
