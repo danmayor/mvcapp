@@ -2,7 +2,7 @@
 Welcome to the Digivance MVC Application Framework is an open source Go package intended to provide a lightweight Model View Controller (MVC) application coding library with patterns and conventions similar to more widely used frameworks in other languages (Such as Asp.Net or Rails).
 
 ## Version 0.1.0
-The current master branch is version 0.1.0 of the Digivance MvcApp Framework. This is the initial stable alpha release of the code base. This version contains the basic framework required to design an interactive MVC website / web application.
+This is the initial stable alpha release of the code base. This version contains the basic framework required to design an interactive MVC website / web application.
 
 ## References:
 
