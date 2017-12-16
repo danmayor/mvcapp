@@ -21,7 +21,7 @@ type SessionManager struct {
 	SessionIDKey string
 
 	// Sessions is the collection of browser session objects
-	Sessions []*Session
+	Sessions map[string]*Session
 
 	// SessionTimeout is the duration of time that a browser session will stay in memory between
 	// requests / activity from the user
@@ -31,26 +31,20 @@ type SessionManager struct {
 // NewSessionManager returns a new Session Manager object
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
-		Sessions:       make([]*Session, 0),
+		Sessions:       make(map[string]*Session, 0),
 		SessionTimeout: (15 * time.Minute),
 	}
 }
 
 // GetSession returns the current http session for the provided session id
 func (manager *SessionManager) GetSession(id string) *Session {
-	for key, val := range manager.Sessions {
-		if val.ID == id {
-			return manager.Sessions[key]
-		}
-	}
-
-	return nil
+	return manager.Sessions[id]
 }
 
 // Contains detects if the requested id (key) exists in this session collection
 func (manager *SessionManager) Contains(id string) bool {
-	for _, v := range manager.Sessions {
-		if v.ID == id {
+	if session := manager.GetSession(id); session != nil {
+		if session.ID == id {
 			return true
 		}
 	}
@@ -60,24 +54,16 @@ func (manager *SessionManager) Contains(id string) bool {
 
 // CreateSession creates and returns a new http session model
 func (manager *SessionManager) CreateSession(id string) *Session {
-	i := len(manager.Sessions)
 	session := NewSession()
 	session.ID = id
-	manager.Sessions = append(manager.Sessions, session)
-	return manager.Sessions[i]
+	manager.Sessions[id] = session
+	return manager.Sessions[id]
 }
 
 // SetSession will set (creating if necessary) the provided session to
 // the session manager collection
 func (manager *SessionManager) SetSession(session *Session) {
-	id := session.ID
-	res := manager.GetSession(id)
-
-	if res != nil {
-		res.Values = append([]*SessionValue{}, session.Values...)
-	} else {
-		manager.Sessions = append(manager.Sessions, session)
-	}
+	manager.Sessions[session.ID] = session
 }
 
 // DropSession will remove a session from the session manager collection based
@@ -85,15 +71,7 @@ func (manager *SessionManager) SetSession(session *Session) {
 func (manager *SessionManager) DropSession(id string) {
 	for key, val := range manager.Sessions {
 		if val.ID == id {
-			if key > 1 {
-				manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
-			} else {
-				if key == 1 {
-					manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
-				} else {
-					manager.Sessions = manager.Sessions[1:]
-				}
-			}
+			delete(manager.Sessions, key)
 		}
 	}
 }
@@ -104,27 +82,7 @@ func (manager *SessionManager) CleanSessions() {
 
 	for key, val := range manager.Sessions {
 		if val.ActivityDate.Before(expired) {
-			if key > 1 {
-				if len(manager.Sessions) > 1 {
-					manager.Sessions = append(manager.Sessions[:key], manager.Sessions[key+1:]...)
-				} else {
-					manager.Sessions = manager.Sessions[:key]
-				}
-			} else {
-				if key == 1 {
-					if len(manager.Sessions) > 1 {
-						manager.Sessions = append(manager.Sessions[2:], manager.Sessions[0])
-					} else {
-						manager.Sessions = append([]*Session{}, manager.Sessions[0])
-					}
-				} else {
-					if len(manager.Sessions) > 1 {
-						manager.Sessions = manager.Sessions[1:]
-					} else {
-						manager.Sessions = []*Session{}
-					}
-				}
-			}
+			delete(manager.Sessions, key)
 		}
 	}
 }

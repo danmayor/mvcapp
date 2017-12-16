@@ -42,12 +42,17 @@ func NewActionResult(data []byte) *ActionResult {
 	}
 }
 
+func RawHTML(data string) template.HTML {
+	return template.HTML(data)
+}
+
 // NewViewResult returns a new ViewResult struct with the Data
 // member set to the compiled templates requested
 func NewViewResult(templates []string, model interface{}) *ActionResult {
 	funcMap := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
+		"RawHTML": RawHTML,
 	}
 
 	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(templates...)

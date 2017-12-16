@@ -72,7 +72,7 @@ func TestSessionManager_SetSession(t *testing.T) {
 	newSession.Set("Test", "Value")
 
 	manager.SetSession(newSession)
-	if len(session.Values) <= 0 {
+	if len(newSession.Values) <= 0 {
 		t.Error("Failed to set newSession values")
 	}
 }
