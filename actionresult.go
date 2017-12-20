@@ -42,6 +42,9 @@ func NewActionResult(data []byte) *ActionResult {
 	}
 }
 
+// RawHTML was a patch method added late in v0.1.0 to provide the ability to pass through raw html content to be
+// rendered by browser. Use this with caution, any code such as javascript should be stripped from the data before
+// this method is called.
 func RawHTML(data string) template.HTML {
 	return template.HTML(data)
 }

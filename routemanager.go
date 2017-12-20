@@ -48,6 +48,10 @@ type RouteManager struct {
 
 	// SessionManager is a pointer to the SessionManager object to use for this app
 	SessionManager *SessionManager
+
+	// BundleManager is a pointer to the BundleManager that can be used by controllers
+	// that derrive from the BundleController type (Is set during execution pipeline)
+	BundleManager *BundleManager
 }
 
 // NewRouteManager returns a new route manager object with default
@@ -64,6 +68,7 @@ func NewRouteManager() *RouteManager {
 	}
 }
 
+// toQuerystringMap will parse the provided url encoded query string into a map of kvp's
 func (manager *RouteManager) toQueryStringMap(queryString string) map[string]string {
 	rtn := map[string]string{}
 

@@ -64,6 +64,9 @@ type Controller struct {
 	// Response is the response writer stream to write data to the client
 	Response http.ResponseWriter
 
+	// BundleManager is a pointer to the content bundle manager used by the route manager
+	BundleManager *BundleManager
+
 	// Session is the User browser session data collection for the user who made this request
 	Session *Session
 
@@ -104,14 +107,8 @@ type Controller struct {
 	// used in the Execute method to find the appropriate action method function to call
 	ActionRoutes []*ActionMap
 
-	// LastErrorMessage allows you to pass a simple string indicating an error or page failure. Your templates
-	// should be aware of this member, and if present should display it as an error message to your user.
-	LastErrorMessage string
-
-	// LastErrorDetails allows for extended error message details (Example: if the LastErrorMessage was caused
-	// due to failing to validate an email address, these details could contain the site rules for valid emails
-	// and the template that see's these details set could then display said rules to the user)
-	LastErrorDetails string
+	// ViewData is the preferred means of pasing data models to your views as of version 0.2.0.
+	ViewData map[string]interface{}
 
 	// BeforeExecute is a callback method that a controller can set to provide a global method called before
 	// the action method is executed. (Controller global prep function)
@@ -150,9 +147,7 @@ func NewBaseController(request *http.Request) *Controller {
 
 		DefaultAction: "",
 		ActionRoutes:  make([]*ActionMap, 0),
-
-		LastErrorMessage: "",
-		LastErrorDetails: "",
+		ViewData:      make(map[string]interface{}, 0),
 	}
 
 	for _, cookie := range request.Cookies() {
@@ -293,7 +288,8 @@ func (controller *Controller) Result(data []byte) *ActionResult {
 
 // View will take the provided array of template names and try to make an mvcapp Template
 // List (see func mvcapp.MakeTemplateList) using the type name of this controller (from
-// reflection). Then returns the ViewResult that is created.
+// reflection). Then returns the ViewResult that is created. Note this method does NOT
+// include the ViewData collection of the base controller
 func (controller *Controller) View(templates []string, model interface{}) *ActionResult {
 	templateList := MakeTemplateList(strings.ToLower(controller.ControllerName), templates)
 	res := NewViewResult(templateList, model)
@@ -312,6 +308,9 @@ func (controller *Controller) View(templates []string, model interface{}) *Actio
 }
 
 // SimpleView takes the provided variadic strings and uses them to call controller.View(templates, controller)
+// Note this is called at the base controller object, therefor will not accept custom controller members.
+// You can pass custom data models by setting them to the controller.ViewData map, which can be accessed in the
+// template via .ViewData["key"]
 func (controller *Controller) SimpleView(templates ...string) *ActionResult {
 	return controller.View(templates, controller)
 }

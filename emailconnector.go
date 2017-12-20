@@ -1,3 +1,11 @@
+/*
+	Digivance MVC Application Framework
+	Email Connector
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines the basic functionality of the email connector object
+*/
+
 package mvcapp
 
 import (

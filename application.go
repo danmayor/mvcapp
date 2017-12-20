@@ -18,9 +18,6 @@ import (
 // Application is our global scope object (E.g. application wide configuration
 // and manager systems)
 type Application struct {
-	// SessionManager is our HTTP Session Manager system
-	SessionManager *SessionManager
-
 	// RouteManager is our Route Manager system
 	RouteManager *RouteManager
 
@@ -46,16 +43,13 @@ type Application struct {
 // NewApplication returns a new default MVC Application object
 func NewApplication() *Application {
 	rtn := &Application{
-		SessionManager: NewSessionManager(),
-		RouteManager:   NewRouteManager(),
-		BindAddress:    "",
-		HTTPPort:       80,
-		HTTPServer:     nil,
-		HTTPSPort:      443,
-		HTTPSServer:    nil,
+		RouteManager: NewRouteManager(),
+		BindAddress:  "",
+		HTTPPort:     80,
+		HTTPServer:   nil,
+		HTTPSPort:    443,
+		HTTPSServer:  nil,
 	}
-
-	rtn.RouteManager.SessionManager = rtn.SessionManager
 
 	if LogFilename == "" {
 		SetLogFilename(fmt.Sprintf("%s/%s", GetApplicationPath(), "mvcapp.log"))
