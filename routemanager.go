@@ -169,36 +169,7 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 // handleFile is called if HandleRequest fails to load the controller or the result, if this fails
 // we will fall back on MVC 404 functionality
 func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) bool {
-	path := request.URL.Path
-	if strings.HasPrefix(strings.ToLower(path), "/") {
-		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
-	}
-
-	if path == "" {
-		return false
-	}
-
-	f, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
-		return false
-	}
-
-	// refuse to serve directory contents for security
-	mode := f.Mode()
-	if mode.IsDir() {
-		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
-		return false
-	}
-
-	if manager.validPath(path) {
-		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
-		http.ServeFile(response, request, path)
-		return true
-	}
-
-	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
-	return false
+	return manager.ServeFile(response, request)
 }
 
 // validPath is used internally to ignore paths that are used by the mvcapp system
@@ -310,4 +281,38 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	if controller.AfterExecute != nil {
 		controller.AfterExecute()
 	}
+}
+
+// ServeFile is a simple wrapper that allows the caller to serve a raw file to the response
+func (manager *RouteManager) ServeFile(response http.ResponseWriter, request *http.Request) bool {
+	path := request.URL.Path
+	if strings.HasPrefix(strings.ToLower(path), "/") {
+		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
+	}
+
+	if path == "" {
+		return false
+	}
+
+	f, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
+		return false
+	}
+
+	// refuse to serve directory contents for security
+	mode := f.Mode()
+	if mode.IsDir() {
+		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
+		return false
+	}
+
+	if manager.validPath(path) {
+		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
+		http.ServeFile(response, request, path)
+		return true
+	}
+
+	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
+	return false
 }
