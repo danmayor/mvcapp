@@ -1,3 +1,12 @@
+/*
+	Digivance MVC Application Framework - Unit Tests
+	Bundle Manager Tests
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines the version 0.2.0 compatibility of bundlemanager.go functions. These functions are written
+	to demonstrate and test the intended use cases of the functions in bundlemanager.go
+*/
+
 package mvcapp_test
 
 import (
@@ -10,7 +19,21 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
-func TestBundleManagerBuildBundle(t *testing.T) {
+// TestBundleManager_CreateBundle ensures that the BundleManager.CreateBundle method operates as expected
+func TestBundleManager_CreateBundle(t *testing.T) {
+	bundleManager := mvcapp.NewBundleManager()
+	if err := bundleManager.CreateBundle("TestBundle", "text/css", []string{}); err != nil {
+		t.Errorf("Failed to create new bundle: %s", err)
+	}
+
+	if err := bundleManager.CreateBundle("TestBundle", "text/css", []string{}); err == nil {
+		t.Errorf("Failed to prevent duplicate bundle creation: %s", err)
+	}
+}
+
+// TestBundleManager_BuildBundle ensures that the BundleManager.BuildBundle and BundleManager.RebuildBundle method operates
+// as expected
+func TestBundleManager_BuildBundle(t *testing.T) {
 	expectedResult := "html,body{font-size:14px}a{color:blue}div{border:0}"
 	filename := []string{
 		fmt.Sprintf("%s/a.css", mvcapp.GetApplicationPath()),
@@ -34,6 +57,31 @@ func TestBundleManagerBuildBundle(t *testing.T) {
 	defer os.RemoveAll(filename[2])
 
 	bundleManager := mvcapp.NewBundleManager()
+	if err := bundleManager.BuildBundle("fail.js"); err == nil {
+		t.Error("Failed to prevent build of unknown bundle")
+	}
+
+	if err := bundleManager.CreateBundle("fail.js", "text/javascript", []string{}); err != nil {
+		t.Errorf("Failed to create empty bundle for testing (this is a good thing?): %s", err)
+	}
+
+	if err := bundleManager.BuildBundle("fail.js"); err == nil {
+		t.Error("Failed to prevent build of empty bundle")
+	}
+
+	bundleManager.Bundles["fail.js"].Files = append([]string{}, "notfound.js")
+	if err := bundleManager.BuildBundle("fail.js"); err == nil {
+		t.Error("Failed to prevent build with missing filename")
+	}
+
+	if err := bundleManager.RemoveBundle("fail.js"); err != nil {
+		t.Errorf("Failed to remove failing bundle: %s", err)
+	}
+
+	if err := bundleManager.RemoveBundle("fail.js"); err == nil {
+		t.Error("Failed to prevent removing non existent bundle")
+	}
+
 	defer os.RemoveAll("bundle")
 	if err := bundleManager.CreateBundle("styles.css", "text/css", filename); err != nil {
 		t.Fatalf("Failed to create bundle: %s", err)
@@ -73,6 +121,8 @@ func TestBundleManagerBuildBundle(t *testing.T) {
 	}
 }
 
+// TestBundleManager_BuildAllBundles ensures that the BundleManager.BuildAllBundles and BundleManager.RebuildAllBundles
+// methods operate as expected
 func TestBundleManagerBuildAllBundles(t *testing.T) {
 	expectedResult := "html,body{font-size:14px}a{color:blue}div{border:0}"
 	filename := []string{

@@ -105,7 +105,7 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 	path := strings.TrimLeft(request.URL.Path, "/")
 	controllerName := manager.parseControllerName(path)
 
-	TraceLog(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
+	LogTrace(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
 
 	for _, route := range manager.Routes {
 		if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(controllerName)) {
@@ -121,12 +121,12 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			controller.Fragment = request.URL.Fragment
 			controller.Cookies = request.Cookies()
 
-			TraceLog(fmt.Sprintf("Constructed controller: %s", controllerName))
+			LogTrace(fmt.Sprintf("Constructed controller: %s", controllerName))
 			return icontroller, controller
 		}
 	}
 
-	TraceLog(fmt.Sprintf("Failed to obtain controller for request to: %s", controllerName))
+	LogTrace(fmt.Sprintf("Failed to obtain controller for request to: %s", controllerName))
 	return nil, nil
 }
 
@@ -203,7 +203,7 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
-	TraceLog(fmt.Sprintf("Handling request: %s", request.URL.String()))
+	LogTrace(fmt.Sprintf("Handling request: %s", request.URL.String()))
 
 	// Gets the controller objects responsible for this route (if they exist)
 	icontroller, controller := manager.getController(response, request)

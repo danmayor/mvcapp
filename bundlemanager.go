@@ -60,6 +60,20 @@ func (bundleManager *BundleManager) CreateBundle(bundleName string, mimeType str
 	return nil
 }
 
+// RemoveBundle is used to remove a bundle from the manager by name.
+func (bundleManager *BundleManager) RemoveBundle(bundleName string) error {
+	if bundleManager.Bundles[bundleName] == nil {
+		return fmt.Errorf("Failed to remove bundle, no bundles found for %s", bundleName)
+	}
+
+	bundleManager.Bundles[bundleName] = nil
+	if bundleManager.Bundles[bundleName] != nil {
+		return fmt.Errorf("Failed to remove bundle, %s seems to still exist", bundleName)
+	}
+
+	return nil
+}
+
 // doBuild is really just a micro-optimization, it can be used so that "ALL" methods
 // of this object only have to iterate the bundles map once
 func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName string) error {
@@ -80,6 +94,8 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 
 	for _, filename := range bundleMap.Files {
 		if !strings.HasPrefix(filename, GetApplicationPath()) {
+			// Is tested successfully, hard to demonstrate because of scoping when testing
+			// (e.g. the GetApplicationPath is different between the unit test and the lib)
 			filename = fmt.Sprintf("%s/%s", GetApplicationPath(), filename)
 		}
 
@@ -93,6 +109,8 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 
 	bundleFilename := fmt.Sprintf("%s/bundle/%s", GetApplicationPath(), bundleName)
 	if err := os.RemoveAll(bundleFilename); err != nil {
+		// os.RemoveAll is normally pretty quiet, haven't tested as this is a very critical
+		// failure that isn't very likely to ever execute.
 		return fmt.Errorf("Failed to remove existing bundle file: %s", err)
 	}
 

@@ -273,9 +273,9 @@ func LogError(message string) error {
 	return nil
 }
 
-// TraceLog is used to log debug tracing messages (such as the most verbose helping the reader to track the
+// LogTrace is used to log debug tracing messages (such as the most verbose helping the reader to track the
 // flow of execution through the program)
-func TraceLog(message string) error {
+func LogTrace(message string) error {
 	if LogLevel < LogLevelTrace {
 		return errors.New("Failed to write trace log message due to log level")
 	}

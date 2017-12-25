@@ -1,3 +1,12 @@
+/*
+	Digivance MVC Application Framework - Unit Tests
+	Email Connector Feature Tests
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines the version 0.2.0 compatibility of emailconnector.go functions. These functions are written
+	to demonstrate and test the intended use cases of the functions in emailconnector.go
+*/
+
 package mvcapp_test
 
 import (
@@ -13,7 +22,10 @@ import (
 // set this to true, sorry. But all have been tested :)
 var doTests = false
 
-func TestSendMail(t *testing.T) {
+// TestEmailConnector_SendMail ensures that the EmailConnector.SendMail method operates as expected
+// Note you will need to modify this method with your email credentials / recipients and set doTests
+// to true to include this with your unit tests.
+func TestEmailConnector_SendMail(t *testing.T) {
 	if !doTests {
 		return
 	}
@@ -31,7 +43,10 @@ func TestSendMail(t *testing.T) {
 	}
 }
 
-func TestSendTemplateMail(t *testing.T) {
+// TestEmailConnector_SendTemplateMail ensures that the EmailConnector.SendTemplateMail method operates
+// as expected Note you will need to modify this method with your email credentials / recipients and set
+// doTests to true to include this with your unit tests.
+func TestEmailConnector_SendTemplateMail(t *testing.T) {
 	if !doTests {
 		return
 	}
@@ -61,7 +76,10 @@ func TestSendTemplateMail(t *testing.T) {
 
 }
 
-func TestSendEmailWithAttachment(t *testing.T) {
+// TestEmailConnector_SendWithAttachment ensures that the EmailConnector.SendWithAttachment method operates
+// as expected Note you will need to modify this method with your email credentials / recipients and set
+// doTests to true to include this with your unit tests.
+func TestEmailConnector_SendWithAttachment(t *testing.T) {
 	if !doTests {
 		return
 	}
@@ -83,7 +101,10 @@ func TestSendEmailWithAttachment(t *testing.T) {
 	}
 }
 
-func TestSendEmailMultipleRecipients(t *testing.T) {
+// TestEmailConnector_SendMultiRecipients ensures that the EmailConnector.SendMultiRecipients method operates
+// as expected Note you will need to modify this method with your email credentials / recipients and set
+// doTests to true to include this with your unit tests.
+func TestEmailConnector_SendMultiRecipients(t *testing.T) {
 	if !doTests {
 		return
 	}

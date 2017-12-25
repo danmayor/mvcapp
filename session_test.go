@@ -3,7 +3,7 @@
 	Browser Session Collection Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of session.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of session.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in session.go
 */
 
@@ -15,6 +15,7 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// TestNewSession ensures that mvcapp.NewSession returns the expected value
 func TestNewSession(t *testing.T) {
 	session := mvcapp.NewSession()
 	if session == nil {
@@ -22,6 +23,7 @@ func TestNewSession(t *testing.T) {
 	}
 }
 
+// TestSession_Get ensures that Session.Get operates as expected
 func TestSession_Get(t *testing.T) {
 	session := mvcapp.NewSession()
 	session.Set("Hello", "World")
@@ -31,6 +33,7 @@ func TestSession_Get(t *testing.T) {
 	}
 }
 
+// TestSession_Set ensures that Session.Set operates as expected
 func TestSession_Set(t *testing.T) {
 	session := mvcapp.NewSession()
 	session.Set("Hello", "World")
@@ -42,6 +45,7 @@ func TestSession_Set(t *testing.T) {
 	}
 }
 
+// TestSession_Remove ensures that Session.Remove operates as expected
 func TestSession_Remove(t *testing.T) {
 	session := mvcapp.NewSession()
 	session.Set("Hello", "World")
