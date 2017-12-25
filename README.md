@@ -10,10 +10,10 @@ The current master branch is version 0.1.0 of the Digivance MvcApp Framework. Th
 ## References:
 
 > #### Website:
-> You can read more about this project and it's maintainers on the MvcApp page at Digivance technologies: www.Digivance.com/Services/MvcApp.
+> You can read more about this project and it's maintainers on the MvcApp page at Digivance technologies: [MVC Application Framework](https://www.digivance.com/services/mvcapp).
 
 > #### Roadmap
 > The current road map for development of this package can be found under the [GitHub Issues Board](https://github.com/Digivance/mvcapp/milestones). Note that we use milestones to define major version releases and we use the issues in these milestones to lay out the functionality. 
 
 > #### License
-> This framework is developed and released under the Lesser GNU Public Library license. More information can be found in the project [License file](https://github.com/Digivance/mvcapp/blob/master/LICENSE).
+> This framework is developed and released under the Lesser GNU Public Library license. More information can be found in the project [License file](https://github.com/digivance/mvcapp/blob/master/LICENSE).
