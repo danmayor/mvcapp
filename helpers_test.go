@@ -3,7 +3,7 @@
 	Helper Functions Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of helpers.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of helpers.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in helpers.go
 */
 
@@ -18,6 +18,7 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// TestTemplateExists ensures the mvcapp.TemplateExists method returns the expected value
 func TestTemplateExists(t *testing.T) {
 	var err error
 	apppath := mvcapp.GetApplicationPath()
@@ -91,6 +92,7 @@ func TestTemplateExists(t *testing.T) {
 	}
 }
 
+// TestMakeTemplateList ensures the mvcapp.MakeTemplateList method returns the expected values
 func TestMakeTemplateList(t *testing.T) {
 	var err error
 	apppath := mvcapp.GetApplicationPath()
@@ -138,6 +140,7 @@ func TestMakeTemplateList(t *testing.T) {
 	}
 }
 
+// TestGetLogFilename ensures the mvcapp.GetLogFilename method returns the expected value
 func TestGetLogFilename(t *testing.T) {
 	apppath := mvcapp.GetApplicationPath()
 	filename := fmt.Sprintf("%s/%s", apppath, "mvcapp.log")
@@ -147,6 +150,7 @@ func TestGetLogFilename(t *testing.T) {
 	}
 }
 
+// TestGetLogLevel ensures the mvcapp.GetLogLevel method returns the expected value
 func TestGetLogLevel(t *testing.T) {
 	level := 3
 	mvcapp.SetLogLevel(level)
@@ -155,13 +159,14 @@ func TestGetLogLevel(t *testing.T) {
 	}
 }
 
+// TestLogMessage ensures the mvcapp.LogMessage method operates as expected
 func TestLogMessage(t *testing.T) {
 	apppath := mvcapp.GetApplicationPath()
 	filename := fmt.Sprintf("%s/%s", apppath, "mvcapp_test.log")
 	os.RemoveAll(filename)
 
 	mvcapp.SetLogFilename(filename)
-	mvcapp.SetLogLevel(3)
+	mvcapp.SetLogLevel(mvcapp.LogLevelInfo)
 
 	mvcapp.LogMessage("Hello logs!")
 	file, err := os.Open(filename)
@@ -180,15 +185,21 @@ func TestLogMessage(t *testing.T) {
 	if fi.Size() < 12 {
 		t.Error("Failed to log message (womp womp)")
 	}
+
+	mvcapp.SetLogFilename("")
+	if err := mvcapp.LogMessage("Should fail"); err == nil {
+		t.Error("Failed to prevent writing to missing filename")
+	}
 }
 
+// TestLogWarning ensures the mvcapp.LogWarning method operates as expected
 func TestLogWarning(t *testing.T) {
 	apppath := mvcapp.GetApplicationPath()
 	filename := fmt.Sprintf("%s/%s", apppath, "mvcapp_test.log")
 	os.RemoveAll(filename)
 
 	mvcapp.SetLogFilename(filename)
-	mvcapp.SetLogLevel(3)
+	mvcapp.SetLogLevel(mvcapp.LogLevelWarning)
 
 	mvcapp.LogWarning("Hello logs!")
 	file, err := os.Open(filename)
@@ -207,15 +218,21 @@ func TestLogWarning(t *testing.T) {
 	if fi.Size() < 12 {
 		t.Error("Failed to log warning (womp womp)")
 	}
+
+	mvcapp.SetLogFilename("")
+	if err := mvcapp.LogWarning("Should fail"); err == nil {
+		t.Error("Failed to prevent writing to missing filename")
+	}
 }
 
+// TestLogError ensures the mvcapp.LogError method operates as expected
 func TestLogError(t *testing.T) {
 	apppath := mvcapp.GetApplicationPath()
 	filename := fmt.Sprintf("%s/%s", apppath, "mvcapp_test.log")
 	os.RemoveAll(filename)
 
 	mvcapp.SetLogFilename(filename)
-	mvcapp.SetLogLevel(3)
+	mvcapp.SetLogLevel(mvcapp.LogLevelError)
 
 	mvcapp.LogError("Hello logs!")
 	file, err := os.Open(filename)
@@ -233,5 +250,61 @@ func TestLogError(t *testing.T) {
 
 	if fi.Size() < 12 {
 		t.Error("Failed to log error (womp womp)")
+	}
+
+	mvcapp.SetLogFilename("")
+	if err := mvcapp.LogError("Should fail"); err == nil {
+		t.Error("Failed to prevent writing to missing filename")
+	}
+}
+
+// TestLogTrace ensures the mvcapp.LogTrace method operates as expected
+func TestLogTrace(t *testing.T) {
+	apppath := mvcapp.GetApplicationPath()
+	filename := fmt.Sprintf("%s/%s", apppath, "mvcapp_test.log")
+	os.RemoveAll(filename)
+
+	mvcapp.SetLogFilename(filename)
+	mvcapp.SetLogLevel(mvcapp.LogLevelTrace)
+
+	mvcapp.LogTrace("Hello logs!")
+	file, err := os.Open(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer file.Close()
+	defer os.RemoveAll(filename)
+
+	fi, err := file.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.Size() < 12 {
+		t.Error("Failed to log error (womp womp)")
+	}
+
+	mvcapp.SetLogFilename("")
+	if err := mvcapp.LogTrace("Should fail"); err == nil {
+		t.Error("Failed to prevent writing to missing filename")
+	}
+}
+
+// TestGetLogDateFormat ensures that the mvcapp.GetLogDateFormat method returns the
+// expected value
+func TestGetLogDateFormat(t *testing.T) {
+	data := mvcapp.GetLogDateFormat()
+	if data == "" {
+		t.Error("Failed to get date format")
+	}
+}
+
+// TestSetLogDateFormat ensures that the mvcapp.SetLogDateFormat method operates as expected
+func TestSetLogDateFormat(t *testing.T) {
+	mvcapp.SetLogDateFormat("1/2/3")
+	data := mvcapp.GetLogDateFormat()
+	if data != "1/2/3" {
+		t.Error("Failed to set log date format")
 	}
 }

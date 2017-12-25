@@ -48,6 +48,10 @@ type RouteManager struct {
 
 	// SessionManager is a pointer to the SessionManager object to use for this app
 	SessionManager *SessionManager
+
+	// BundleManager is a pointer to the BundleManager that can be used by controllers
+	// that derrive from the BundleController type (Is set during execution pipeline)
+	BundleManager *BundleManager
 }
 
 // NewRouteManager returns a new route manager object with default
@@ -64,6 +68,7 @@ func NewRouteManager() *RouteManager {
 	}
 }
 
+// toQuerystringMap will parse the provided url encoded query string into a map of kvp's
 func (manager *RouteManager) toQueryStringMap(queryString string) map[string]string {
 	rtn := map[string]string{}
 
@@ -100,7 +105,7 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 	path := strings.TrimLeft(request.URL.Path, "/")
 	controllerName := manager.parseControllerName(path)
 
-	TraceLog(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
+	LogTrace(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
 
 	for _, route := range manager.Routes {
 		if strings.HasPrefix(strings.ToLower(route.ControllerName), strings.ToLower(controllerName)) {
@@ -116,12 +121,12 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			controller.Fragment = request.URL.Fragment
 			controller.Cookies = request.Cookies()
 
-			TraceLog(fmt.Sprintf("Constructed controller: %s", controllerName))
+			LogTrace(fmt.Sprintf("Constructed controller: %s", controllerName))
 			return icontroller, controller
 		}
 	}
 
-	TraceLog(fmt.Sprintf("Failed to obtain controller for request to: %s", controllerName))
+	LogTrace(fmt.Sprintf("Failed to obtain controller for request to: %s", controllerName))
 	return nil, nil
 }
 
@@ -164,36 +169,7 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 // handleFile is called if HandleRequest fails to load the controller or the result, if this fails
 // we will fall back on MVC 404 functionality
 func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) bool {
-	path := request.URL.Path
-	if strings.HasPrefix(strings.ToLower(path), "/") {
-		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
-	}
-
-	if path == "" {
-		return false
-	}
-
-	f, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
-		return false
-	}
-
-	// refuse to serve directory contents for security
-	mode := f.Mode()
-	if mode.IsDir() {
-		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
-		return false
-	}
-
-	if manager.validPath(path) {
-		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
-		http.ServeFile(response, request, path)
-		return true
-	}
-
-	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
-	return false
+	return manager.ServeFile(response, request)
 }
 
 // validPath is used internally to ignore paths that are used by the mvcapp system
@@ -227,7 +203,7 @@ func (manager *RouteManager) RegisterController(name string, creator ControllerC
 // HandleRequest is mapped to the http handler method and processes the
 // HTTP request pipeline
 func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request *http.Request) {
-	TraceLog(fmt.Sprintf("Handling request: %s", request.URL.String()))
+	LogTrace(fmt.Sprintf("Handling request: %s", request.URL.String()))
 
 	// Gets the controller objects responsible for this route (if they exist)
 	icontroller, controller := manager.getController(response, request)
@@ -305,4 +281,38 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	if controller.AfterExecute != nil {
 		controller.AfterExecute()
 	}
+}
+
+// ServeFile is a simple wrapper that allows the caller to serve a raw file to the response
+func (manager *RouteManager) ServeFile(response http.ResponseWriter, request *http.Request) bool {
+	path := request.URL.Path
+	if strings.HasPrefix(strings.ToLower(path), "/") {
+		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
+	}
+
+	if path == "" {
+		return false
+	}
+
+	f, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
+		return false
+	}
+
+	// refuse to serve directory contents for security
+	mode := f.Mode()
+	if mode.IsDir() {
+		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
+		return false
+	}
+
+	if manager.validPath(path) {
+		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
+		http.ServeFile(response, request, path)
+		return true
+	}
+
+	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
+	return false
 }

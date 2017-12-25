@@ -3,7 +3,7 @@
 	Route Manager Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of routemanager.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of routemanager.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in routemanager.go
 */
 
@@ -20,10 +20,12 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// rmTestController is used in these unit tests to ensure route mapping operates as expected
 type rmTestController struct {
 	*mvcapp.Controller
 }
 
+// newRMTestController is used as our test controller creator method
 func newRMTestController(request *http.Request) mvcapp.IController {
 	rtn := &rmTestController{
 		Controller: mvcapp.NewBaseController(request),
@@ -41,35 +43,43 @@ func newRMTestController(request *http.Request) mvcapp.IController {
 	return rtn
 }
 
+// OnBeforeExecute is our test controller before execute callback
 func (controller *rmTestController) OnBeforeExecute() {
 	controller.ContinuePipeline = true
 }
 
+// Index is our test controllers index action method
 func (controller *rmTestController) Index(params []string) *mvcapp.ActionResult {
 	return controller.Result([]byte("Test Data"))
 }
 
+// NotFound is our test controllers custom 404 error page
 func (controller *rmTestController) NotFound(params []string) *mvcapp.ActionResult {
 	return nil
 }
 
+// DefaultNotFound is used to test if we can override the underlying controller methods
 func (controller *rmTestController) DefaultNotFound(params []string) *mvcapp.ActionResult {
 	controller.NotFoundResult = nil
 	return nil
 }
 
+// OnAfterExecute is our test controllers after execute callback
 func (controller *rmTestController) OnAfterExecute() {
 	controller.ContinuePipeline = true
 }
 
+// OnNotFound is used by our test controller for our custom 404 page callback
 func (controller *rmTestController) OnNotFound() *mvcapp.ActionResult {
 	return controller.Result([]byte("Not Found"))
 }
 
+// OnError is used by our test controller for our custom error page
 func (controller *rmTestController) OnError(err error) *mvcapp.ActionResult {
 	return controller.Result([]byte("Error"))
 }
 
+// TestNewRouteManager ensures that mvcapp.NewRouteManager returns the expected result
 func TestNewRouteManager(t *testing.T) {
 	manager := mvcapp.NewRouteManager()
 	if manager == nil {
@@ -77,6 +87,7 @@ func TestNewRouteManager(t *testing.T) {
 	}
 }
 
+// TestHandleRequest ensures that the RouteManager.HandleRequest method operates as expected
 func TestRouteManager_HandleRequest(t *testing.T) {
 	// Create a route manager
 	manager := mvcapp.NewRouteManager()

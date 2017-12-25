@@ -3,7 +3,7 @@
 	Action Map Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of actionresult.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of actionresult.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in actionresult.go
 */
 
@@ -21,19 +21,21 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// TestNewActionResult ensures that mvcapp.NewActionResult returns the expected value
 func TestNewActionResult(t *testing.T) {
 	// Create a new generic action result
-	actionResult := mvcapp.NewActionResult([]byte("Version 0.1.0 Compliant"))
+	actionResult := mvcapp.NewActionResult([]byte("Version 0.2.0 Compliant"))
 	if actionResult == nil {
 		t.Fatal("Failed to create new action result")
 	}
 
 	// Confirm that the payload data was set correctly
-	if string(actionResult.Data) != "Version 0.1.0 Compliant" {
+	if string(actionResult.Data) != "Version 0.2.0 Compliant" {
 		t.Error("Failed to validate result data")
 	}
 }
 
+// TestNewViewResult ensures that mvcapp.NewViewResult returns the expected value
 func TestNewViewResult(t *testing.T) {
 	// Create a temporary template file and set the expected resulting value
 	filename := fmt.Sprintf("%s/%s", mvcapp.GetApplicationPath(), "_test_template.htm")
@@ -58,6 +60,7 @@ func TestNewViewResult(t *testing.T) {
 	}
 }
 
+// TestNewJSONResult ensures that mvcapp.NewJSONResult returns the expected value
 func TestNewJSONResult(t *testing.T) {
 	// Create a json encoded payload
 	payload := "Version 0.1.0 Compliant"
@@ -79,6 +82,7 @@ func TestNewJSONResult(t *testing.T) {
 	}
 }
 
+// TestActionResult_AddHeader ensures that ActionResult.AddHeader operates as expected
 func TestActionResult_AddHeader(t *testing.T) {
 	// Create a generic action result to add header to
 	actionResult := mvcapp.NewActionResult([]byte("Needs a body"))
@@ -103,6 +107,7 @@ func TestActionResult_AddHeader(t *testing.T) {
 	}
 }
 
+// TestActionResult_AddCookie ensures that ActionResult.AddCookie operates as expected
 func TestActionResult_AddCookie(t *testing.T) {
 	// Create a generic action result to add cookie to
 	actionResult := mvcapp.NewActionResult([]byte("Needs a body"))
@@ -146,6 +151,8 @@ func TestActionResult_AddCookie(t *testing.T) {
 		t.Error("Failed to read cookie from http response")
 	}
 }
+
+// TestActionResult_Execute ensures that ActionResult.Execute operates as expected
 func TestActionResult_Execute(t *testing.T) {
 	// Create a generic action result to serve
 	actionResult := mvcapp.NewActionResult([]byte("Test Payload"))
@@ -166,5 +173,14 @@ func TestActionResult_Execute(t *testing.T) {
 	// Validates that the delivered body is the expected payload
 	if string(body) != string(actionResult.Data) {
 		t.Error("Failed to retrieve expected payload")
+	}
+}
+
+// TestActionResult_RawHTML ensures that mvcapp.RawHTML returns the expected raw html template string
+func TestActionResult_RawHTML(t *testing.T) {
+	data := "<html><head><title>Testing Raw HTML</title></head></html>"
+	testData := fmt.Sprintf("%s", mvcapp.RawHTML(data))
+	if testData != data {
+		t.Error("Failed to process raw html to template string")
 	}
 }

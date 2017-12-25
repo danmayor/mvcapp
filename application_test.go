@@ -3,7 +3,7 @@
 	Base Controller Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of controller.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of controller.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in controller.go
 */
 
@@ -17,6 +17,7 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// TestNewApplication ensures that mvcapp.NewApplication returns the expected value
 func TestNewApplication(t *testing.T) {
 	app := mvcapp.NewApplication()
 	if app == nil {
@@ -36,6 +37,7 @@ func newAppTestController(request *http.Request) mvcapp.IController {
 	}
 }
 
+// TestApplication_Run ensures that the Application.Run method operates as expected
 func TestApplication_Run(t *testing.T) {
 	app := mvcapp.NewApplication()
 	app.HTTPPort = 8906
@@ -64,6 +66,8 @@ func TestApplication_Run(t *testing.T) {
 		t.Error("Did not receive expected 404 result")
 		t.Log(actualBody)
 	}
-}
 
-// Omitting TLS tests because I don't want to distribute generic certificate files with the package.
+	if err := app.Run(); err == nil {
+		t.Error("Failed to block & return error when HTTPServer is clearly in use")
+	}
+}

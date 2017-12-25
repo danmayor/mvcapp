@@ -3,7 +3,7 @@
 	Session Manager Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of sessionmanager.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of sessionmanager.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in sessionmanager.go
 */
 
@@ -16,6 +16,7 @@ import (
 	"github.com/digivance/mvcapp"
 )
 
+// TestNewSessionManager ensures that mvcapp.NewSessionManager returns the expected value
 func TestNewSessionManager(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	if manager == nil {
@@ -23,6 +24,7 @@ func TestNewSessionManager(t *testing.T) {
 	}
 }
 
+// TestSessionManager_GetSession ensures that SessionManager.GetSession returns the expected value
 func TestSessionManager_GetSession(t *testing.T) {
 	session := mvcapp.NewSession()
 	session.Set("Test", "Val")
@@ -41,6 +43,7 @@ func TestSessionManager_GetSession(t *testing.T) {
 	}
 }
 
+// TestSessionManager_Contains ensures that SessionMnager.Contains returns the expected value
 func TestSessionManager_Contains(t *testing.T) {
 	session := mvcapp.NewSession()
 	manager := mvcapp.NewSessionManager()
@@ -55,6 +58,7 @@ func TestSessionManager_Contains(t *testing.T) {
 	}
 }
 
+// TestSessionManager.CreateSession ensures that SessionManager.CreateSession operates as expected
 func TestSessionManager_CreateSession(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	session := manager.CreateSession("TestID")
@@ -63,6 +67,7 @@ func TestSessionManager_CreateSession(t *testing.T) {
 	}
 }
 
+// TestSessionManager.SetSession ensures that SessionManager.SetSession operates as expected
 func TestSessionManager_SetSession(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	session := manager.CreateSession("TestID")
@@ -77,6 +82,7 @@ func TestSessionManager_SetSession(t *testing.T) {
 	}
 }
 
+// TestSessionManager_DropSession ensures that SessionManager.DropSession operates as expected
 func TestSessionManager_DropSession(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	manager.CreateSession("Deletable")
@@ -115,6 +121,7 @@ func TestSessionManager_DropSession(t *testing.T) {
 	}
 }
 
+// TestSessionManager_CleanSessions ensures that SessionManager.CleanSessions operates as expected
 func TestSessionManager_CleanSessions(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	session := manager.CreateSession("Deletable")

@@ -3,7 +3,7 @@
 	Controller Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of controller.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of controller.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in controller.go
 */
 
@@ -57,6 +57,7 @@ func (controller *testController) ErrorPage(err error) *mvcapp.ActionResult {
 	return mvcapp.NewActionResult([]byte("Error Page"))
 }
 
+// TestController_RegisterAction ensures that the Controller.RegisterAction method operates as expected
 func TestController_RegisterAction(t *testing.T) {
 	// Make a mock request to test routing and executing
 	req, err := http.NewRequest("GET", "http://localhost/test/index", nil)
@@ -79,6 +80,7 @@ func TestController_RegisterAction(t *testing.T) {
 	}
 }
 
+// TestController_GetCookie ensures that the Controller.GetCookie method returns the expected value
 func TestController_GetCookie(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {
@@ -112,6 +114,7 @@ func TestController_GetCookie(t *testing.T) {
 	}
 }
 
+// TestController_SetCookie ensures that the Controller.SetCookie method operates as expected
 func TestController_SetCookie(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {
@@ -136,6 +139,7 @@ func TestController_SetCookie(t *testing.T) {
 	}
 }
 
+// TestController_DeleteCookie ensures that the Controller.DeleteCookie method operates as expected
 func TestController_DeleteCookie(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {
@@ -164,6 +168,7 @@ func TestController_DeleteCookie(t *testing.T) {
 	}
 }
 
+// TestController_Execute ensures that the Controller.Execute method operates as expected
 func TestController_Execute(t *testing.T) {
 	req, err := http.NewRequest("POST", "http://localhost/test/index/with/parameters", nil)
 	if err != nil {
@@ -210,6 +215,7 @@ func TestController_Execute(t *testing.T) {
 	}
 }
 
+// TestController_WriteResponse ensures that the Controller.WriteResponse method operates as expected
 func TestController_WriteResponse(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://localhost/test/index", nil)
 	if err != nil {
@@ -309,6 +315,7 @@ func TestController_WriteResponse(t *testing.T) {
 	}
 }
 
+// TestController_RedirectJS ensures that the Controller.RedirectJS method operates as expected
 func TestController_RedirectJS(t *testing.T) {
 	expectedResult := "<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='https://localhost/test/index';</script></body></html>"
 	recorder := httptest.NewRecorder()
@@ -333,6 +340,7 @@ func TestController_RedirectJS(t *testing.T) {
 	}
 }
 
+// TestController_Result ensures that the Controller.Result method returns the expected result
 func TestController_Result(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {
@@ -350,6 +358,7 @@ func TestController_Result(t *testing.T) {
 	}
 }
 
+// TestController_View ensures that the Controller.View method returns the expected result
 func TestController_View(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {
@@ -396,6 +405,44 @@ func TestController_View(t *testing.T) {
 	}
 }
 
+// TestController_SimpleView ensures that the Controller.SimpleView method returns the expected result
+func TestController_SimpleView(t *testing.T) {
+	req, err := http.NewRequest("", "http://localhost/test/index", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	icontroller := newTestController(req)
+	controller := icontroller.ToController()
+
+	pathname := fmt.Sprintf("%s/%s", mvcapp.GetApplicationPath(), "views/shared")
+	filename := fmt.Sprintf("%s/%s", pathname, "_test_template.htm")
+	templateData := "{{ define \"mvcapp\" }}<html><head><title>test template</title></head><body>Hello Template!</body></html>{{ end }}"
+	expectedData := "<html><head><title>test template</title></head><body>Hello Template!</body></html>"
+
+	defer os.RemoveAll(filename)
+	defer os.RemoveAll(pathname)
+	defer os.RemoveAll(fmt.Sprintf("%s/%s", mvcapp.GetApplicationPath(), "views"))
+
+	os.MkdirAll(pathname, 0644)
+	err = ioutil.WriteFile(filename, []byte(templateData), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Construct view result from temporary template file
+	viewResult := controller.SimpleView(filename)
+	if viewResult == nil {
+		t.Fatal("Failed to create view result")
+	}
+
+	// Validate the resulting result data
+	if string(viewResult.Data) != expectedData {
+		t.Error("Failed to validate view result data")
+	}
+}
+
+// TestController_JSON ensures that the Controll.JSON method returns the expected result
 func TestController_JSON(t *testing.T) {
 	req, err := http.NewRequest("", "http://localhost/test/index", nil)
 	if err != nil {

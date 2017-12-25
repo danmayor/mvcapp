@@ -3,7 +3,7 @@
 	Action Map Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.1.0 compatibility of actionmap.go functions. These functions are written
+	This file defines the version 0.2.0 compatibility of actionmap.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in actionmap.go
 */
 
@@ -31,6 +31,7 @@ func validateResultData(actionResult *mvcapp.ActionResult) bool {
 	return false
 }
 
+// TestNewActionMap ensures that the mvcapp.NewActionMap method works as expected
 func TestNewActionMap(t *testing.T) {
 	// Create a new action map
 	actionMap := mvcapp.NewActionMap("", "Test", actionHandler)
@@ -50,6 +51,7 @@ func TestNewActionMap(t *testing.T) {
 	}
 }
 
+// TestNewGetActionMap ensures that the mvcapp.NewGetActionMap method works as expected
 func TestNewGetActionMap(t *testing.T) {
 	// Create a new GET ActionMap
 	actionMap := mvcapp.NewGetActionMap("Test", actionHandler)
@@ -74,6 +76,7 @@ func TestNewGetActionMap(t *testing.T) {
 	}
 }
 
+// TestNewPostActionMap ensures that the mvcapp.NewPostActionMap method works as expected
 func TestNewPostActionMap(t *testing.T) {
 	// Create a new POST ActionMap
 	actionMap := mvcapp.NewPostActionMap("Test", actionHandler)
@@ -98,6 +101,7 @@ func TestNewPostActionMap(t *testing.T) {
 	}
 }
 
+// TestNewPutActionMap ensures that the mvcapp.NewPutActionMap method works as expected
 func TestNewPutActionMap(t *testing.T) {
 	// Create a new PUT ActionMap
 	actionMap := mvcapp.NewPutActionMap("Test", actionHandler)
@@ -122,6 +126,7 @@ func TestNewPutActionMap(t *testing.T) {
 	}
 }
 
+// TestNewDeleteActionMap ensures that the mvcapp.NewDeleteActionMap method works as expected
 func TestNewDeleteActionMap(t *testing.T) {
 	// Create a new DELETE ActionMap
 	actionMap := mvcapp.NewDeleteActionMap("Test", actionHandler)
