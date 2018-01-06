@@ -195,7 +195,7 @@ func (manager *RouteManager) validPath(path string) bool {
 // RegisterController is used to map a custom controller object to the
 // controller section of the requested url (E.g. "site.com/CONTROLLER/action")
 func (manager *RouteManager) RegisterController(name string, creator ControllerCreator) {
-	LogMessage(fmt.Sprintf("Registering controller for: %s", name))
+	LogTrace(fmt.Sprintf("Registering controller for: %s", name))
 	manager.Routes = append(manager.Routes, NewRouteMap(name, creator))
 }
 
@@ -307,7 +307,7 @@ func (manager *RouteManager) ServeFile(response http.ResponseWriter, request *ht
 	}
 
 	if manager.validPath(path) {
-		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
+		LogTrace(fmt.Sprintf("Serving raw file: %s", path))
 		http.ServeFile(response, request, path)
 		return true
 	}
