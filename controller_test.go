@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,9 +69,9 @@ func TestController_RegisterAction(t *testing.T) {
 	// Invoke an instance of our Test controller (as the route manager would)
 	// based on the route maps
 	controller := newTestController(req)
-	res := controller.Execute()
-	if res == nil {
-		t.Fatal("404 from expected result")
+	res, err := controller.Execute()
+	if err != nil {
+		t.Fatalf("404 from expected result: %s", err)
 	}
 
 	// compare the resulting payload against the expected vaule "test"
@@ -97,9 +98,9 @@ func TestController_GetCookie(t *testing.T) {
 	// Invoke an instance of our Test controller (as the route manager would)
 	// based on the route maps
 	icontroller := newTestController(req)
-	res := icontroller.Execute()
-	if res == nil {
-		t.Fatal("404 from expected result")
+	_, err = icontroller.Execute()
+	if err != nil {
+		t.Fatalf("404 from expected result: %s", err)
 	}
 
 	controller := icontroller.ToController()
@@ -176,9 +177,9 @@ func TestController_Execute(t *testing.T) {
 	}
 
 	icontroller := newTestController(req)
-	res := icontroller.Execute()
-	if res == nil {
-		t.Error("Failed to execute controller action")
+	res, err := icontroller.Execute()
+	if err != nil {
+		t.Errorf("Failed to execute controller action: %s", err)
 	}
 
 	data := string(res.Data)
@@ -192,9 +193,9 @@ func TestController_Execute(t *testing.T) {
 	}
 
 	icontroller = newTestController(req)
-	res = icontroller.Execute()
-	if res == nil {
-		t.Error("Failed to execute controller action")
+	res, err = icontroller.Execute()
+	if err != nil {
+		t.Errorf("Failed to execute controller action: %s", err)
 	}
 
 	data = string(res.Data)
@@ -204,8 +205,8 @@ func TestController_Execute(t *testing.T) {
 
 	controller := icontroller.ToController()
 	controller.NotFoundResult = nil
-	res = icontroller.Execute()
-	if res == nil {
+	res, err = icontroller.Execute()
+	if err != nil {
 		t.Error("Failed to execute controller action")
 	}
 
@@ -228,7 +229,11 @@ func TestController_WriteResponse(t *testing.T) {
 	controller := icontroller.ToController()
 	controller.Response = recorder
 
-	res := icontroller.Execute()
+	res, err := icontroller.Execute()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	controller.WriteResponse(res)
 	data, err := ioutil.ReadAll(recorder.Body)
 	if err != nil {
@@ -475,14 +480,8 @@ func TestController_JSON(t *testing.T) {
 	// We set success to true then overwrite it with the value returned
 	// from the call to JSON. We expect success to equal false if this
 	// part of the test is to pass
-	var success bool = true
-	err = json.Unmarshal(jsonResult.Data, &success)
-	fmt.Println(string(jsonResult.Data))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if success != false {
-		t.Error("Failed to validate API failure json result")
+	expectedResult := "{\"Success\":false,\"Error\":\"Failed to create json payload\"}"
+	if !strings.EqualFold(string(jsonResult.Data), expectedResult) {
+		t.Fatalf("Error comparing json result:\n%s", jsonResult.Data)
 	}
 }

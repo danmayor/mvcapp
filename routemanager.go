@@ -134,15 +134,13 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 // read the browser cookies to find the browser session ID (as defined by the managers SessionIDKey)
 // and if present, will load the browser session value collection for this user into the controllers
 // Session member.
-func (manager *RouteManager) setControllerSessions(controller *Controller) {
+func (manager *RouteManager) setControllerSessions(controller *Controller) error {
 	if controller == nil {
-		LogError("Can not set controller sessions, no controller registered")
-		return
+		return errors.New("Can not set controller sessions, no controller registered")
 	}
 
 	if controller.Request == nil {
-		LogError("Can not set controller sessions, no request received?")
-		return
+		return errors.New("Can not set controller sessions, no request received?")
 	}
 
 	// Get the browser session ID from the request cookies
@@ -164,6 +162,7 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 	controller.Session = browserSession
 	controller.Session.ActivityDate = time.Now()
 	controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
+	return nil
 }
 
 // handleFile is called if HandleRequest fails to load the controller or the result, if this fails
@@ -262,8 +261,8 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	// If our before execute needs to fail, it can do so and set continue pipeline
 	// to false, which means we should not attempt to execute the controller.
 	if controller.ContinuePipeline {
-		result := icontroller.Execute()
-		if result == nil {
+		result, err := icontroller.Execute()
+		if result == nil || err != nil {
 			if !manager.handleFile(response, request) {
 				if controller.NotFoundResult != nil {
 					result = controller.NotFoundResult()

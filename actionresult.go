@@ -11,6 +11,8 @@ package mvcapp
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -51,7 +53,7 @@ func RawHTML(data string) template.HTML {
 
 // NewViewResult returns a new ViewResult struct with the Data
 // member set to the compiled templates requested
-func NewViewResult(templates []string, model interface{}) *ActionResult {
+func NewViewResult(templates []string, model interface{}) (*ActionResult, error) {
 	funcMap := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
@@ -61,45 +63,64 @@ func NewViewResult(templates []string, model interface{}) *ActionResult {
 	page, err := template.New("ViewTemplate").Funcs(funcMap).ParseFiles(templates...)
 
 	if err != nil {
-		LogError(err.Error())
-		return nil
+		return nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	if err = page.ExecuteTemplate(buffer, "mvcapp", model); err != nil {
-		LogError(err.Error())
-		return nil
+		return nil, err
 	}
 
-	return NewActionResult(buffer.Bytes())
+	return NewActionResult(buffer.Bytes()), nil
 }
 
 // NewJSONResult returns a new JSONResult with the payload json encoded to Data
-func NewJSONResult(payload interface{}) *ActionResult {
+func NewJSONResult(payload interface{}) (*ActionResult, error) {
 	data, err := json.Marshal(payload)
 	if len(data) <= 0 || payload == nil {
 		if err != nil {
-			LogError(err.Error())
+			return nil, fmt.Errorf("Failed to create json payload: %s", err)
 		}
 
-		return nil
+		return nil, errors.New("Failed to create json payload")
 	}
 
-	return NewActionResult(data)
+	return NewActionResult(data), nil
 }
 
 // AddHeader adds an http header key value pair combination to the result
-func (result *ActionResult) AddHeader(key string, val string) {
+func (result *ActionResult) AddHeader(key string, val string) error {
 	result.Headers[key] = val
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to set http header: %s", err)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // AddCookie adds the provided cookie to the result
-func (result *ActionResult) AddCookie(cookie *http.Cookie) {
+func (result *ActionResult) AddCookie(cookie *http.Cookie) error {
 	result.Cookies = append(result.Cookies, cookie)
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to add cookie value: %s", r)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // Execute writes the header, cookies and data of this action result to the client.
-func (result ActionResult) Execute(response http.ResponseWriter) {
+func (result ActionResult) Execute(response http.ResponseWriter) error {
 	for k, v := range result.Headers {
 		response.Header().Set(k, v)
 	}
@@ -110,4 +131,15 @@ func (result ActionResult) Execute(response http.ResponseWriter) {
 
 	response.WriteHeader(result.StatusCode)
 	response.Write(result.Data)
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to execute action result: %s", err)
+		}
+
+		return err
+	}
+
+	return nil
 }

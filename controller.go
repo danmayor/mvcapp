@@ -37,15 +37,15 @@ type IController interface {
 	RegisterAction(string, string, ActionMethod)
 
 	// Execute should query and execute the mapped action method
-	Execute() *ActionResult
+	Execute() (*ActionResult, error)
 
 	// WriteResponse should write the provided action result to the response stream
-	WriteResponse(*ActionResult)
+	WriteResponse(*ActionResult) error
 
 	// RedirectJS is a method that should write an html page with javascript redirect
 	// function directly to the response stream (this can be used to lock pages from
 	// users based of custom conditions, such as logged in or not)
-	RedirectJS(string)
+	RedirectJS(string) error
 
 	// ToController should return the actual base controller object (so that the system
 	// can interact with controller variable members)
@@ -197,7 +197,7 @@ func (controller *Controller) DeleteCookie(cookieName string) {
 }
 
 // Execute is called by the route manager instructing this controller to respond
-func (controller *Controller) Execute() *ActionResult {
+func (controller *Controller) Execute() (*ActionResult, error) {
 	verb := controller.Request.Method
 	actionName := controller.DefaultAction
 	params := []string{}
@@ -227,20 +227,29 @@ func (controller *Controller) Execute() *ActionResult {
 			}
 
 			res := actionMethod.Method(params)
-			return res
+			return res, nil
 		}
 	}
 
 	if controller.NotFoundResult != nil {
-		return controller.NotFoundResult()
+		return controller.NotFoundResult(), nil
 	}
 
-	return controller.DefaultNotFoundPage()
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Controller failed to execute: %s", err)
+		}
+
+		return nil, err
+	}
+
+	return controller.DefaultNotFoundPage(), nil
 }
 
 // WriteResponse is called from the route manager to execute the result that was constructed
 // from this controllers Execute method (E.g. the result returned from the action if mapped)
-func (controller *Controller) WriteResponse(result *ActionResult) {
+func (controller *Controller) WriteResponse(result *ActionResult) error {
 	if controller.ContinuePipeline {
 		if result == nil || len(result.Data) <= 0 {
 			if controller.NotFoundResult != nil {
@@ -250,8 +259,11 @@ func (controller *Controller) WriteResponse(result *ActionResult) {
 			}
 		}
 
-		result.Execute(controller.Response)
+		err := result.Execute(controller.Response)
+		return err
 	}
+
+	return nil
 }
 
 // RedirectJS is a helper method that will write a very simple html page using the
@@ -261,7 +273,7 @@ func (controller *Controller) WriteResponse(result *ActionResult) {
 // method from BeginExecute callbacks to lock down an entire controller to given
 // conditions, such as if the user is logged in. Can be called anytime before
 // AfterExecute.
-func (controller *Controller) RedirectJS(url string) {
+func (controller *Controller) RedirectJS(url string) error {
 	data := fmt.Sprintf("<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='%s';</script></body></html>", url)
 	LogTrace(fmt.Sprintf("Redirecting user with javascript, payload to follow:\n%s", data))
 
@@ -277,6 +289,17 @@ func (controller *Controller) RedirectJS(url string) {
 	LogTrace("Payload and headers set for redirection via javascript, submitting response.")
 	res.Execute(controller.Response)
 	controller.ContinuePipeline = false
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Controller failed to launch write redirect via javascript response: %s", err)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // Result returns a new ActionResult and automatically assigns the controllers cookies
@@ -292,10 +315,8 @@ func (controller *Controller) Result(data []byte) *ActionResult {
 // include the ViewData collection of the base controller
 func (controller *Controller) View(templates []string, model interface{}) *ActionResult {
 	templateList := MakeTemplateList(strings.ToLower(controller.ControllerName), templates)
-	res := NewViewResult(templateList, model)
-	if res == nil {
-		LogError(fmt.Sprintf("Failed to create view result for:\n%s\nUsing Model:\n%s", templates, model))
-
+	res, err := NewViewResult(templateList, model)
+	if err != nil {
 		if controller.ErrorResult != nil {
 			return controller.ErrorResult(errors.New("Internal server error, failed to render page"))
 		}
@@ -317,10 +338,11 @@ func (controller *Controller) SimpleView(templates ...string) *ActionResult {
 
 // JSON returns a new JSONResult object of the provided payload
 func (controller *Controller) JSON(payload interface{}) *ActionResult {
-	res := NewJSONResult(payload)
-	if res == nil {
-		LogError(fmt.Sprintf("Failed to encode payload:\n%s", payload))
-		return NewJSONResult(false)
+	res, err := NewJSONResult(payload)
+	if err != nil {
+		res = &ActionResult{
+			Data: []byte(fmt.Sprintf("{\"Success\":false,\"Error\":\"%s\"}", err)),
+		}
 	}
 
 	res.Cookies = controller.Cookies

@@ -68,7 +68,7 @@ func NewApplication() *Application {
 }
 
 // Stop is used to stop hosting this MVC Application. You can call one of the Run methods to restart
-func (app *Application) Stop() {
+func (app *Application) Stop() error {
 	if app.HTTPServer != nil {
 		app.HTTPServer.Shutdown(nil)
 	}
@@ -76,6 +76,17 @@ func (app *Application) Stop() {
 	if app.HTTPSServer != nil {
 		app.HTTPSServer.Shutdown(nil)
 	}
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to stop application services: %s", err)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // Run is used to execute this MVC Application (direct http socket server)
@@ -87,6 +98,15 @@ func (app *Application) Run() error {
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPPort)
 	app.HTTPServer = &http.Server{Addr: addr}
 	app.HTTPServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to launch application: %s", err)
+		}
+
+		return err
+	}
 
 	return app.HTTPServer.ListenAndServe()
 }
@@ -100,6 +120,15 @@ func (app *Application) RunSecure(certFile string, keyFile string) error {
 	addr := fmt.Sprintf("%s:%d", app.BindAddress, app.HTTPSPort)
 	app.HTTPSServer = &http.Server{Addr: addr}
 	app.HTTPSServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to launch application in secured mode: %s", err)
+		}
+
+		return err
+	}
 
 	return app.HTTPSServer.ListenAndServeTLS(certFile, keyFile)
 }
@@ -136,6 +165,15 @@ func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
 		time.Sleep(1 * time.Second)
 	}
 
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to launch application in forced secure mode: %s", err)
+		}
+
+		return err
+	}
+
 	return err
 }
 
@@ -168,6 +206,15 @@ func (app *Application) RunForcedSecureJS(certFile string, keyFile string) error
 
 	for err == nil {
 		time.Sleep(1 * time.Second)
+	}
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to launch application in forced secure via javascript mode: %s", err)
+		}
+
+		return err
 	}
 
 	return err

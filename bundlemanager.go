@@ -131,6 +131,16 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 	}
 
 	bundleMap.BuildDate = time.Now()
+
+	if r := recover(); r != nil {
+		err, ok := r.(error)
+		if !ok {
+			err = fmt.Errorf("Failed to launch build bundle: %s", err)
+		}
+
+		return err
+	}
+
 	return nil
 }
 
