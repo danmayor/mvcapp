@@ -204,7 +204,7 @@ func SetLogLevel(level int) {
 	LogLevel = level
 }
 
-// LogMessage writes an information message to the log file if our internal log level is 3
+// LogMessage writes an information message to the log file if our internal log level is >= 3
 func LogMessage(message string) error {
 	if LogLevel < LogLevelInfo {
 		return errors.New("Failed to write information message due to log level")
@@ -225,6 +225,12 @@ func LogMessage(message string) error {
 	}
 
 	return nil
+}
+
+// LogMessagef writes a formatted information message to the log file if our internal log
+// level is >= 3
+func LogMessagef(message string, args ...interface{}) error {
+	return LogMessage(fmt.Sprintf(message, args))
 }
 
 // LogWarning writes a warning message to the log file if our internal log level is >= 2
@@ -250,6 +256,12 @@ func LogWarning(message string) error {
 	return nil
 }
 
+// LogWarningf writes a formatted warning message to the log file if our internal log level
+// is >= 2
+func LogWarningf(message string, args ...interface{}) error {
+	return LogWarning(fmt.Sprintf(message, args))
+}
+
 // LogError writes an error message to the log file if our internal log level is >= 1
 func LogError(message string) error {
 	if LogLevel < LogLevelError {
@@ -271,6 +283,12 @@ func LogError(message string) error {
 	}
 
 	return nil
+}
+
+// LogErrorf writes a formatted error message to the log file if our internal log level
+// is >= 1
+func LogErrorf(message string, args ...interface{}) error {
+	return LogError(fmt.Sprintf(message, args))
 }
 
 // LogTrace is used to log debug tracing messages (such as the most verbose helping the reader to track the
@@ -295,4 +313,10 @@ func LogTrace(message string) error {
 	}
 
 	return nil
+}
+
+// LogTracef is used to log formatted debug tracing messages such as the most verbose heling the reader to
+// track the flow of execution through the program
+func LogTracef(message string, args ...interface{}) error {
+	return LogTrace(fmt.Sprintf(message, args))
 }
