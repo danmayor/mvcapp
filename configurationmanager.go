@@ -4,23 +4,50 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 // ConfigurationManager is a simple json serializer wrapper that allows an
 // mvcapp to easily save and load human friendly json files for application
 // configuration values
 type ConfigurationManager struct {
+	AppName    string
+	AppVersion string
+
+	DomainName  string
+	BindAddress string
 	HTTPPort    int
 	HTTPSPort   int
+
 	LogFilename string
 	LogLevel    int
+
 	TLSCertFile string
 	TLSKeyFile  string
+
+	AllowGoogleAuthFiles bool
+
+	HTTPSessionTimeout time.Duration
+	TaskDuration       time.Duration
 }
 
 // NewConfigurationManager returns an empty new Configuration Manager struct
 func NewConfigurationManager() *ConfigurationManager {
-	return &ConfigurationManager{}
+	return &ConfigurationManager{
+		AppName:              "MyApp",
+		AppVersion:           "0.0.0",
+		DomainName:           "domain.tld",
+		BindAddress:          "",
+		HTTPPort:             80,
+		HTTPSPort:            443,
+		LogFilename:          "./app.log",
+		LogLevel:             2,
+		TLSCertFile:          "",
+		TLSKeyFile:           "",
+		AllowGoogleAuthFiles: true,
+		HTTPSessionTimeout:   30 * time.Minute,
+		TaskDuration:         60 * time.Second,
+	}
 }
 
 // NewConfigurationManagerFromFile returns a new Configuration Manager struct
