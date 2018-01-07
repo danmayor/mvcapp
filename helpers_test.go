@@ -49,7 +49,7 @@ func TestTemplateExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !mvcapp.TemplateExists("test", "_test_template.htm") {
+	if !mvcapp.TemplateExists("test", "./_test_template.htm") {
 		t.Error("Failed to test ./views path")
 	}
 	os.RemoveAll(filename)
@@ -134,8 +134,15 @@ func TestMakeTemplateList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	templateList := mvcapp.MakeTemplateList("test", []string{"_start.tpl", "_shared.tpl", "_sharedwidget.tpl", "_page.tpl"})
-	if len(templateList) != 4 {
+	filename = fmt.Sprintf("%s/%s", apppath, "_root_template.tpl")
+	defer os.RemoveAll(filename)
+	err = ioutil.WriteFile(filename, []byte(apppath), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	templateList := mvcapp.MakeTemplateList("test", []string{"_start.tpl", "_shared.tpl", "_sharedwidget.tpl", "_page.tpl", "./_root_template.tpl"})
+	if len(templateList) != 5 {
 		t.Error("Failed to parse all standard paths for templates")
 	}
 }

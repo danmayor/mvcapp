@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,10 @@ const (
 // TemplateExists checks the standard folder paths based on the provided controllerName
 // to see if the template file can be found. (See MakeTemplateList for path structure)
 func TemplateExists(controllerName string, template string) bool {
+	if strings.HasPrefix(template, "~/") || strings.HasPrefix(template, "./") {
+		template = GetApplicationPath() + template[1:]
+	}
+
 	if _, err := os.Stat(template); !os.IsNotExist(err) {
 		return true
 	}
@@ -71,6 +76,10 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 	rtn := []string{}
 
 	for _, template := range templates {
+		if strings.HasPrefix(template, "~/") || strings.HasPrefix(template, "./") {
+			template = GetApplicationPath() + template[1:]
+		}
+
 		if _, err := os.Stat(template); !os.IsNotExist(err) {
 			rtn = append(rtn, template)
 		} else {
@@ -171,6 +180,10 @@ func GetLogFilename() string {
 
 // SetLogFilename will set the filename that log messages will be written to
 func SetLogFilename(filename string) {
+	if strings.HasPrefix(filename, "~/") || strings.HasPrefix(filename, "./") {
+		filename = GetApplicationPath() + filename[1:]
+	}
+
 	LogFilename = filename
 }
 
