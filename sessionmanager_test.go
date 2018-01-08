@@ -3,7 +3,7 @@
 	Session Manager Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of sessionmanager.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of sessionmanager.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in sessionmanager.go
 */
 
@@ -21,6 +21,16 @@ func TestNewSessionManager(t *testing.T) {
 	manager := mvcapp.NewSessionManager()
 	if manager == nil {
 		t.Fatal("Failed to create session manager")
+	}
+}
+
+// TestNewSessionManagerFromConfig ensures that mvcapp.NewSessionManagerFromConfig returns
+// the expected value
+func TestNewSessionManagerFromConfig(t *testing.T) {
+	config := mvcapp.NewConfigurationManager()
+	manager := mvcapp.NewSessionManagerFromConfig(config)
+	if manager.SessionTimeout != (time.Duration(config.HTTPSessionTimeout) * time.Minute) {
+		t.Error("Failed to create new session manager from provided configuration object")
 	}
 }
 

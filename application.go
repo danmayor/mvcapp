@@ -63,6 +63,8 @@ func NewApplicationFromConfig(config *ConfigurationManager) *Application {
 		SetLogFilename("./mvcapp.log")
 	}
 
+	rtn.RouteManager.SessionManager.SessionTimeout = time.Duration(config.HTTPSessionTimeout) * time.Minute
+
 	LogTrace("Application initialized")
 	return rtn
 }
@@ -85,16 +87,9 @@ func (app *Application) Stop() error {
 	}
 
 	if app.HTTPSServer != nil {
-		app.HTTPSServer.Shutdown(nil)
-	}
-
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Failed to stop application services: %s", err)
+		if err := app.HTTPSServer.Shutdown(nil); err != nil {
+			return err
 		}
-
-		return err
 	}
 
 	return nil
@@ -111,15 +106,6 @@ func (app *Application) Run() error {
 	app.HTTPServer = &http.Server{Addr: addr}
 	app.HTTPServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
 
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Failed to launch application: %s", err)
-		}
-
-		return err
-	}
-
 	return app.HTTPServer.ListenAndServe()
 }
 
@@ -133,15 +119,6 @@ func (app *Application) RunSecure(certFile string, keyFile string) error {
 	addr := fmt.Sprintf("%s:%d", config.BindAddress, config.HTTPSPort)
 	app.HTTPSServer = &http.Server{Addr: addr}
 	app.HTTPSServer.Handler = http.HandlerFunc(app.RouteManager.HandleRequest)
-
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Failed to launch application in secured mode: %s", err)
-		}
-
-		return err
-	}
 
 	return app.HTTPSServer.ListenAndServeTLS(certFile, keyFile)
 }
@@ -185,7 +162,7 @@ func (app *Application) RunForcedSecure(certFile string, keyFile string) error {
 
 	// Here is an internal management thread if needed, it waits for app.Config.TaskDuration per tick
 	for err == nil {
-		time.Sleep(config.TaskDuration)
+		time.Sleep(time.Duration(config.TaskDuration) * time.Second)
 	}
 
 	if r := recover(); r != nil {
@@ -229,7 +206,7 @@ func (app *Application) RunForcedSecureJS(certFile string, keyFile string) error
 	}()
 
 	for err == nil {
-		time.Sleep(config.TaskDuration)
+		time.Sleep(time.Duration(config.TaskDuration) * time.Second)
 	}
 
 	if r := recover(); r != nil {

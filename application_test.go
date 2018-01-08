@@ -28,6 +28,7 @@ func TestNewApplication(t *testing.T) {
 
 // TestNewApplicationFromConfig ensures that mvcapp.NewApplicationFromConfig returns the expected value
 func TestNewApplicationFromConfig(t *testing.T) {
+	mvcapp.LogFilename = ""
 	config := mvcapp.NewConfigurationManager()
 	app := mvcapp.NewApplicationFromConfig(config)
 	if app == nil {
@@ -47,7 +48,12 @@ func TestNewApplicationFromConfigFile(t *testing.T) {
 		t.Errorf("Failed to create new configuration manager json file: %s", err)
 	}
 
-	app, err := mvcapp.NewApplicationFromConfigFile(configFile)
+	app, err := mvcapp.NewApplicationFromConfigFile("▒▓╜│:)")
+	if err == nil {
+		t.Error("Failed to fail on invalid filename")
+	}
+
+	app, err = mvcapp.NewApplicationFromConfigFile(configFile)
 	if err != nil {
 		t.Errorf("Failed to create new MVC Application object from provided json config file: %s", err)
 	}

@@ -1,3 +1,11 @@
+/*
+	Digivance MVC Application Framework
+	Generic Package Helper methods
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines some generic helper methods used in various portions of this package.
+*/
+
 package mvcapp
 
 import (
@@ -10,6 +18,8 @@ import (
 	"time"
 )
 
+// Defines our Loging Levels, these are used to filter what is written to file allowing
+// the calling application to easily switch the verbosity of logging at runtime
 const (
 	// LogLevelNone is wreckless...
 	LogLevelNone = 0
@@ -112,7 +122,8 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 	return rtn
 }
 
-// Some constant configuration values for random string generation methods
+// Some constant configuration values for random string generation methods. Defined here
+// to allow for forked copies to easily modify string randomization
 const (
 	// letterBytes : Available characters for random string
 	letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

@@ -52,11 +52,7 @@ func (bundleManager *BundleManager) CreateBundle(bundleName string, mimeType str
 		return errors.New("Failed to create new content bundle, there is already a bundle created using this name")
 	}
 
-	bundleManager.Bundles[bundleName] = &BundleMap{
-		Files:    bundledFiles,
-		MimeType: mimeType,
-	}
-
+	bundleManager.Bundles[bundleName] = NewBundleMap(mimeType, bundledFiles)
 	return nil
 }
 
@@ -66,11 +62,7 @@ func (bundleManager *BundleManager) RemoveBundle(bundleName string) error {
 		return fmt.Errorf("Failed to remove bundle, no bundles found for %s", bundleName)
 	}
 
-	bundleManager.Bundles[bundleName] = nil
-	if bundleManager.Bundles[bundleName] != nil {
-		return fmt.Errorf("Failed to remove bundle, %s seems to still exist", bundleName)
-	}
-
+	delete(bundleManager.Bundles, bundleName)
 	return nil
 }
 
@@ -86,10 +78,7 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 	}
 
 	bundlePath := fmt.Sprintf("%s/bundle", GetApplicationPath())
-	if err := os.Mkdir(bundlePath, 0644); err != nil && !strings.HasSuffix(err.Error(), "file already exists.") {
-		return err
-	}
-
+	os.Mkdir(bundlePath, 0644)
 	data := []byte{}
 
 	for _, filename := range bundleMap.Files {
@@ -108,14 +97,11 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 	}
 
 	bundleFilename := fmt.Sprintf("%s/bundle/%s", GetApplicationPath(), bundleName)
-	if err := os.RemoveAll(bundleFilename); err != nil {
-		// os.RemoveAll is normally pretty quiet, haven't tested as this is a very critical
-		// failure that isn't very likely to ever execute.
-		return fmt.Errorf("Failed to remove existing bundle file: %s", err)
-	}
+	os.RemoveAll(bundleFilename)
 
 	bundleFile, err := os.Create(bundleFilename)
 	if err != nil {
+		// this would be a permissions error, can't test
 		return fmt.Errorf("Failed to create new bundle file: %s", err)
 	}
 
@@ -127,20 +113,11 @@ func (bundleManager *BundleManager) doBuild(bundleMap *BundleMap, bundleName str
 	}()
 
 	if err := bundleManager.Minifier.Minify(bundleMap.MimeType, writer, reader); err != nil {
+		// Syntax error maybe?
 		return fmt.Errorf("Failed to minify and write the bundle file: %s", err)
 	}
 
 	bundleMap.BuildDate = time.Now()
-
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Failed to launch build bundle: %s", err)
-		}
-
-		return err
-	}
-
 	return nil
 }
 

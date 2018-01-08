@@ -36,6 +36,15 @@ func NewSessionManager() *SessionManager {
 	}
 }
 
+// NewSessionManagerFromConfig returns a new Session Manager object with the Session
+// Timeout set from the provided config
+func NewSessionManagerFromConfig(config *ConfigurationManager) *SessionManager {
+	return &SessionManager{
+		Sessions:       make(map[string]*Session, 0),
+		SessionTimeout: time.Duration(config.HTTPSessionTimeout) * time.Minute,
+	}
+}
+
 // GetSession returns the current http session for the provided session id
 func (manager *SessionManager) GetSession(id string) *Session {
 	return manager.Sessions[id]
@@ -69,14 +78,11 @@ func (manager *SessionManager) SetSession(session *Session) {
 // DropSession will remove a session from the session manager collection based
 // on the provided session id
 func (manager *SessionManager) DropSession(id string) {
-	for key, val := range manager.Sessions {
-		if val.ID == id {
-			delete(manager.Sessions, key)
-		}
-	}
+	delete(manager.Sessions, id)
 }
 
-// CleanSessions will drop inactive sessions
+// CleanSessions will drop inactive sessions (E.g. with those with activity older
+// than now - SessionTimeout)
 func (manager *SessionManager) CleanSessions() {
 	expired := time.Now().Add(-manager.SessionTimeout)
 

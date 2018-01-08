@@ -3,7 +3,7 @@
 	Controller Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of controller.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of controller.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in controller.go
 */
 
@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -171,6 +172,10 @@ func TestController_DeleteCookie(t *testing.T) {
 
 // TestController_Execute ensures that the Controller.Execute method operates as expected
 func TestController_Execute(t *testing.T) {
+	postData := url.Values{}
+	postData.Set("First", "Name")
+	postData.Add("Last", "Name")
+
 	req, err := http.NewRequest("POST", "http://localhost/test/index/with/parameters", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -178,6 +183,17 @@ func TestController_Execute(t *testing.T) {
 
 	icontroller := newTestController(req)
 	res, err := icontroller.Execute()
+	if err == nil {
+		t.Error("Failed to prevent executing empty form request")
+	}
+
+	req, err = http.NewRequest("POST", "http://localhost/test/index/with/parameters", strings.NewReader(postData.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	icontroller = newTestController(req)
+	res, err = icontroller.Execute()
 	if err != nil {
 		t.Errorf("Failed to execute controller action: %s", err)
 	}
@@ -234,7 +250,18 @@ func TestController_WriteResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	controller.WriteResponse(res)
+	controller.ContinuePipeline = false
+	err = controller.WriteResponse(res)
+	if err != nil {
+		t.Errorf("Failed to gracefully skip writing response when continue pipeline false: %s", err)
+	}
+
+	controller.ContinuePipeline = true
+	err = controller.WriteResponse(res)
+	if err != nil {
+		t.Errorf("Failed to write response: %s", err)
+	}
+
 	data, err := ioutil.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal(err)

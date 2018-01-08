@@ -14,17 +14,6 @@ import (
 	"time"
 )
 
-// SessionValue is a simple Key Value Pair struct used in the values
-// collection of a Session (such as a per user session)
-type SessionValue struct {
-	// Key represents the key that serves as the index of this session value in a
-	// browser session value collection
-	Key string
-
-	// Value is the data stored for this session value
-	Value interface{}
-}
-
 // Session represents an http browser session data model
 type Session struct {
 	// ID is the unique key string that represents this browser session

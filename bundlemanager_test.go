@@ -3,7 +3,7 @@
 	Bundle Manager Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of bundlemanager.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of bundlemanager.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in bundlemanager.go
 */
 
@@ -91,6 +91,10 @@ func TestBundleManager_BuildBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll("bundle/styles.css")
+
+	if err := bundleManager.BuildBundle("«╗╣╟/failme"); err == nil {
+		t.Error("Failed to fail when using an invalid bundle file name")
+	}
 
 	bundleFilename := fmt.Sprintf("%s/bundle/styles.css", mvcapp.GetApplicationPath())
 	data, err := ioutil.ReadFile(bundleFilename)

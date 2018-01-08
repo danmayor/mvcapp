@@ -223,7 +223,9 @@ func (controller *Controller) Execute() (*ActionResult, error) {
 	for _, actionMethod := range controller.ActionRoutes {
 		if strings.EqualFold(actionMethod.Name, actionName) && (len(actionMethod.Verb) <= 0 || strings.EqualFold(actionMethod.Verb, verb)) {
 			if strings.EqualFold(verb, "POST") {
-				controller.Request.ParseForm()
+				if err := controller.Request.ParseForm(); err != nil {
+					return nil, err
+				}
 			}
 
 			res := actionMethod.Method(params)
@@ -233,15 +235,6 @@ func (controller *Controller) Execute() (*ActionResult, error) {
 
 	if controller.NotFoundResult != nil {
 		return controller.NotFoundResult(), nil
-	}
-
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Controller failed to execute: %s", err)
-		}
-
-		return nil, err
 	}
 
 	return controller.DefaultNotFoundPage(), nil
@@ -275,7 +268,6 @@ func (controller *Controller) WriteResponse(result *ActionResult) error {
 // AfterExecute.
 func (controller *Controller) RedirectJS(url string) error {
 	data := fmt.Sprintf("<html><head><title>Redirecting...</title><body><script type=\"text/javascript\">window.location.href='%s';</script></body></html>", url)
-	LogTrace(fmt.Sprintf("Redirecting user with javascript, payload to follow:\n%s", data))
 
 	// We manually write the cookies to the browser here because we'll be breaking the
 	// standard pipelint (eg ContinuePipeline = false)
@@ -286,19 +278,12 @@ func (controller *Controller) RedirectJS(url string) error {
 	res.Headers["Pragma"] = "no-cache"
 	res.Headers["Expires"] = "0"
 
-	LogTrace("Payload and headers set for redirection via javascript, submitting response.")
-	res.Execute(controller.Response)
-	controller.ContinuePipeline = false
-
-	if r := recover(); r != nil {
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("Controller failed to launch write redirect via javascript response: %s", err)
-		}
-
+	if err := res.Execute(controller.Response); err != nil {
+		// Can't test this as it shouldn't be possible to fail here, more of a doomsday protection
 		return err
 	}
 
+	controller.ContinuePipeline = false
 	return nil
 }
 

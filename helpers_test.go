@@ -3,7 +3,7 @@
 	Helper Functions Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of helpers.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of helpers.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in helpers.go
 */
 
