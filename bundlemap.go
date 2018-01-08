@@ -25,3 +25,12 @@ type BundleMap struct {
 	// manager uses this to determine if a rebuild is warranted
 	BuildDate time.Time
 }
+
+// NewBundleMap returns a new BundleMap from the provided mime type and filename slice
+func NewBundleMap(mimeType string, files []string) *BundleMap {
+	return &BundleMap{
+		Files:     files,
+		MimeType:  mimeType,
+		BuildDate: time.Time{},
+	}
+}

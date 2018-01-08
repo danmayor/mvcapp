@@ -68,8 +68,20 @@ func NewRouteManager() *RouteManager {
 	}
 }
 
-// toQuerystringMap will parse the provided url encoded query string into a map of kvp's
-func (manager *RouteManager) toQueryStringMap(queryString string) map[string]string {
+// NewRouteManagerFromConfig returns a new route manager object with members
+// populated from the provided configuration manager object
+func NewRouteManagerFromConfig(config *ConfigurationManager) *RouteManager {
+	return &RouteManager{
+		SessionIDKey:      config.HTTPSessionIDKey,
+		DefaultController: config.DefaultController,
+		DefaultAction:     config.DefaultAction,
+		Routes:            make([]*RouteMap, 0),
+		SessionManager:    NewSessionManagerFromConfig(config),
+	}
+}
+
+// ToQueryStringMap will parse the provided url encoded query string into a map of kvp's
+func (manager *RouteManager) ToQueryStringMap(queryString string) map[string]string {
 	rtn := map[string]string{}
 
 	pairs := strings.Split(queryString, "&")
@@ -86,9 +98,9 @@ func (manager *RouteManager) toQueryStringMap(queryString string) map[string]str
 	return rtn
 }
 
-// parseControllerName returns the controller name requested, will fallback and return
+// ParseControllerName returns the controller name requested, will fallback and return
 // the default controller if this is a root request.
-func (manager *RouteManager) parseControllerName(path string) string {
+func (manager *RouteManager) ParseControllerName(path string) string {
 	rtn := manager.DefaultController
 	parts := strings.Split(strings.TrimLeft(path, "/"), "/")
 
@@ -99,11 +111,11 @@ func (manager *RouteManager) parseControllerName(path string) string {
 	return rtn
 }
 
-// getController takes the response and request from our http server and map it to the
+// GetController takes the response and request from our http server and map it to the
 // registered icontroller and controller objects (if they exist)
-func (manager *RouteManager) getController(response http.ResponseWriter, request *http.Request) (IController, *Controller) {
+func (manager *RouteManager) GetController(response http.ResponseWriter, request *http.Request) (IController, *Controller) {
 	path := strings.TrimLeft(request.URL.Path, "/")
-	controllerName := manager.parseControllerName(path)
+	controllerName := manager.ParseControllerName(path)
 
 	LogTrace(fmt.Sprintf("Getting controller request to controller: %s", controllerName))
 
@@ -117,7 +129,7 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 			controller.Response = response
 			controller.DefaultAction = manager.DefaultAction
 			controller.RequestedPath = path
-			controller.QueryString = manager.toQueryStringMap(request.URL.RawQuery)
+			controller.QueryString = manager.ToQueryStringMap(request.URL.RawQuery)
 			controller.Fragment = request.URL.Fragment
 			controller.Cookies = request.Cookies()
 
@@ -130,19 +142,17 @@ func (manager *RouteManager) getController(response http.ResponseWriter, request
 	return nil, nil
 }
 
-// setControllerSessions is called if there is an active session manager. This method will
+// SetControllerSessions is called if there is an active session manager. This method will
 // read the browser cookies to find the browser session ID (as defined by the managers SessionIDKey)
 // and if present, will load the browser session value collection for this user into the controllers
 // Session member.
-func (manager *RouteManager) setControllerSessions(controller *Controller) {
+func (manager *RouteManager) SetControllerSessions(controller *Controller) error {
 	if controller == nil {
-		LogError("Can not set controller sessions, no controller registered")
-		return
+		return errors.New("Can not set controller sessions, no controller registered")
 	}
 
 	if controller.Request == nil {
-		LogError("Can not set controller sessions, no request received?")
-		return
+		return errors.New("Can not set controller sessions, no request received?")
 	}
 
 	// Get the browser session ID from the request cookies
@@ -164,16 +174,21 @@ func (manager *RouteManager) setControllerSessions(controller *Controller) {
 	controller.Session = browserSession
 	controller.Session.ActivityDate = time.Now()
 	controller.SetCookie(&http.Cookie{Name: manager.SessionIDKey, Value: browserSessionID, Path: "/"})
+	return nil
 }
 
-// handleFile is called if HandleRequest fails to load the controller or the result, if this fails
+// HandleFile is called if HandleRequest fails to load the controller or the result, if this fails
 // we will fall back on MVC 404 functionality
-func (manager *RouteManager) handleFile(response http.ResponseWriter, request *http.Request) bool {
+func (manager *RouteManager) HandleFile(response http.ResponseWriter, request *http.Request) bool {
 	return manager.ServeFile(response, request)
 }
 
-// validPath is used internally to ignore paths that are used by the mvcapp system
-func (manager *RouteManager) validPath(path string) bool {
+// ValidPath is used internally to ignore paths that are used by the mvcapp system
+func (manager *RouteManager) ValidPath(path string) bool {
+	if strings.HasPrefix(path, "/") {
+		path = path[1:]
+	}
+
 	if strings.HasPrefix(strings.ToLower(path), "controllers/") {
 		return false
 	}
@@ -196,7 +211,7 @@ func (manager *RouteManager) validPath(path string) bool {
 // RegisterController is used to map a custom controller object to the
 // controller section of the requested url (E.g. "site.com/CONTROLLER/action")
 func (manager *RouteManager) RegisterController(name string, creator ControllerCreator) {
-	LogMessage(fmt.Sprintf("Registering controller for: %s", name))
+	LogTrace(fmt.Sprintf("Registering controller for: %s", name))
 	manager.Routes = append(manager.Routes, NewRouteMap(name, creator))
 }
 
@@ -206,14 +221,14 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	LogTrace(fmt.Sprintf("Handling request: %s", request.URL.String()))
 
 	// Gets the controller objects responsible for this route (if they exist)
-	icontroller, controller := manager.getController(response, request)
+	icontroller, controller := manager.GetController(response, request)
 
 	path := strings.TrimLeft(request.URL.Path, "/")
-	if !manager.validPath(path) {
+	if !manager.ValidPath(path) {
 		// If the path is invalid, we use the default controller to render an
 		// error page telling the user so
 		request, _ = http.NewRequest("GET", manager.DefaultController, nil)
-		icontroller, controller = manager.getController(response, request)
+		icontroller, controller = manager.GetController(response, request)
 
 		if icontroller == nil || controller == nil {
 			LogError("Failed to load default controller to serve invalid path error page")
@@ -232,12 +247,12 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 
 	// If the controller is nil lets try to serve a raw file
 	if controller == nil {
-		if manager.handleFile(response, request) {
+		if manager.HandleFile(response, request) {
 			return
 		}
 
 		request, _ = http.NewRequest("GET", manager.DefaultController, nil)
-		icontroller, controller = manager.getController(response, request)
+		icontroller, controller = manager.GetController(response, request)
 	}
 
 	if controller == nil {
@@ -251,7 +266,7 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	// and try to get the browser session id from the submitted cookies
 	// which is then loaded into the controller session value collection
 	if manager.SessionManager != nil {
-		manager.setControllerSessions(controller)
+		manager.SetControllerSessions(controller)
 	}
 
 	// Call our before execute callback if one is registered
@@ -262,9 +277,9 @@ func (manager *RouteManager) HandleRequest(response http.ResponseWriter, request
 	// If our before execute needs to fail, it can do so and set continue pipeline
 	// to false, which means we should not attempt to execute the controller.
 	if controller.ContinuePipeline {
-		result := icontroller.Execute()
-		if result == nil {
-			if !manager.handleFile(response, request) {
+		result, err := icontroller.Execute()
+		if result == nil || err != nil {
+			if !manager.HandleFile(response, request) {
 				if controller.NotFoundResult != nil {
 					result = controller.NotFoundResult()
 				} else {
@@ -290,29 +305,27 @@ func (manager *RouteManager) ServeFile(response http.ResponseWriter, request *ht
 		path = fmt.Sprintf("%s/%s", GetApplicationPath(), path[1:])
 	}
 
-	if path == "" {
-		return false
-	}
-
 	f, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		LogWarning(fmt.Sprintf("404 Trying to serve raw file: %s", path))
+		LogWarningf("404 Trying to serve raw file: %s", path)
 		return false
 	}
 
 	// refuse to serve directory contents for security
 	mode := f.Mode()
 	if mode.IsDir() {
-		LogWarning(fmt.Sprintf("User tried to request raw directory contents and was blocked: %s", path))
+		LogWarningf("User tried to request raw directory contents and was blocked: %s", path)
 		return false
 	}
 
-	if manager.validPath(path) {
-		LogMessage(fmt.Sprintf("Serving raw file: %s", path))
-		http.ServeFile(response, request, path)
-		return true
+	fmt.Println(path)
+
+	if !manager.ValidPath(request.URL.Path) {
+		LogWarningf("User tried to request from an invalid path and was blocked: %s", path)
+		return false
 	}
 
-	LogError(fmt.Sprintf("Unknown error serving file [%s], permissions problem?", path))
-	return false
+	LogTracef("Serving raw file: %s", path)
+	http.ServeFile(response, request, path)
+	return true
 }

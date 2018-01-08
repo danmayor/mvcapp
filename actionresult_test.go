@@ -49,9 +49,9 @@ func TestNewViewResult(t *testing.T) {
 	}
 
 	// Construct view result from temporary template file
-	viewResult := mvcapp.NewViewResult([]string{filename}, nil)
-	if viewResult == nil {
-		t.Fatal("Failed to create view result")
+	viewResult, err := mvcapp.NewViewResult([]string{filename}, nil)
+	if err != nil {
+		t.Fatalf("Failed to create view result: %s", err)
 	}
 
 	// Validate the resulting result data
@@ -64,14 +64,14 @@ func TestNewViewResult(t *testing.T) {
 func TestNewJSONResult(t *testing.T) {
 	// Create a json encoded payload
 	payload := "Version 0.1.0 Compliant"
-	jsonResult := mvcapp.NewJSONResult(payload)
-	if jsonResult == nil {
+	jsonResult, err := mvcapp.NewJSONResult(payload)
+	if err != nil {
 		t.Fatal("Failed to create JSON result")
 	}
 
 	// Deserialize the created json byte array
 	var res string
-	err := json.Unmarshal(jsonResult.Data, &res)
+	err = json.Unmarshal(jsonResult.Data, &res)
 	if err != nil {
 		t.Fatal(err)
 	}

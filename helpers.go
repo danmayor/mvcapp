@@ -1,3 +1,11 @@
+/*
+	Digivance MVC Application Framework
+	Generic Package Helper methods
+	Dan Mayor (dmayor@digivance.com)
+
+	This file defines some generic helper methods used in various portions of this package.
+*/
+
 package mvcapp
 
 import (
@@ -6,9 +14,12 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
+// Defines our Loging Levels, these are used to filter what is written to file allowing
+// the calling application to easily switch the verbosity of logging at runtime
 const (
 	// LogLevelNone is wreckless...
 	LogLevelNone = 0
@@ -29,6 +40,10 @@ const (
 // TemplateExists checks the standard folder paths based on the provided controllerName
 // to see if the template file can be found. (See MakeTemplateList for path structure)
 func TemplateExists(controllerName string, template string) bool {
+	if strings.HasPrefix(template, "~/") || strings.HasPrefix(template, "./") {
+		template = GetApplicationPath() + template[1:]
+	}
+
 	if _, err := os.Stat(template); !os.IsNotExist(err) {
 		return true
 	}
@@ -71,6 +86,10 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 	rtn := []string{}
 
 	for _, template := range templates {
+		if strings.HasPrefix(template, "~/") || strings.HasPrefix(template, "./") {
+			template = GetApplicationPath() + template[1:]
+		}
+
 		if _, err := os.Stat(template); !os.IsNotExist(err) {
 			rtn = append(rtn, template)
 		} else {
@@ -103,7 +122,8 @@ func MakeTemplateList(controllerName string, templates []string) []string {
 	return rtn
 }
 
-// Some constant configuration values for random string generation methods
+// Some constant configuration values for random string generation methods. Defined here
+// to allow for forked copies to easily modify string randomization
 const (
 	// letterBytes : Available characters for random string
 	letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -171,6 +191,10 @@ func GetLogFilename() string {
 
 // SetLogFilename will set the filename that log messages will be written to
 func SetLogFilename(filename string) {
+	if strings.HasPrefix(filename, "~/") || strings.HasPrefix(filename, "./") {
+		filename = GetApplicationPath() + filename[1:]
+	}
+
 	LogFilename = filename
 }
 
@@ -204,7 +228,7 @@ func SetLogLevel(level int) {
 	LogLevel = level
 }
 
-// LogMessage writes an information message to the log file if our internal log level is 3
+// LogMessage writes an information message to the log file if our internal log level is >= 3
 func LogMessage(message string) error {
 	if LogLevel < LogLevelInfo {
 		return errors.New("Failed to write information message due to log level")
@@ -225,6 +249,12 @@ func LogMessage(message string) error {
 	}
 
 	return nil
+}
+
+// LogMessagef writes a formatted information message to the log file if our internal log
+// level is >= 3
+func LogMessagef(message string, args ...interface{}) error {
+	return LogMessage(fmt.Sprintf(message, args))
 }
 
 // LogWarning writes a warning message to the log file if our internal log level is >= 2
@@ -250,6 +280,12 @@ func LogWarning(message string) error {
 	return nil
 }
 
+// LogWarningf writes a formatted warning message to the log file if our internal log level
+// is >= 2
+func LogWarningf(message string, args ...interface{}) error {
+	return LogWarning(fmt.Sprintf(message, args))
+}
+
 // LogError writes an error message to the log file if our internal log level is >= 1
 func LogError(message string) error {
 	if LogLevel < LogLevelError {
@@ -271,6 +307,12 @@ func LogError(message string) error {
 	}
 
 	return nil
+}
+
+// LogErrorf writes a formatted error message to the log file if our internal log level
+// is >= 1
+func LogErrorf(message string, args ...interface{}) error {
+	return LogError(fmt.Sprintf(message, args))
 }
 
 // LogTrace is used to log debug tracing messages (such as the most verbose helping the reader to track the
@@ -295,4 +337,10 @@ func LogTrace(message string) error {
 	}
 
 	return nil
+}
+
+// LogTracef is used to log formatted debug tracing messages such as the most verbose heling the reader to
+// track the flow of execution through the program
+func LogTracef(message string, args ...interface{}) error {
+	return LogTrace(fmt.Sprintf(message, args))
 }

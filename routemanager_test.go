@@ -3,7 +3,7 @@
 	Route Manager Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of routemanager.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of routemanager.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in routemanager.go
 */
 
@@ -39,6 +39,15 @@ func newRMTestController(request *http.Request) mvcapp.IController {
 	rtn.RegisterAction("", "Index", rtn.Index)
 	rtn.RegisterAction("", "NotFound", rtn.NotFound)
 	rtn.RegisterAction("", "DefaultNotFound", rtn.DefaultNotFound)
+
+	return rtn
+}
+
+// newRMDefaultTestController is used in TestRouteManagerHelpers to fill gaps in unit tests
+func newRMDefaultTestController(request *http.Request) mvcapp.IController {
+	rtn := &rmTestController{
+		Controller: mvcapp.NewBaseController(request),
+	}
 
 	return rtn
 }
@@ -87,6 +96,16 @@ func TestNewRouteManager(t *testing.T) {
 	}
 }
 
+// TestNewRouteManagerFromConfig ensures that the mvcapp.NewRouteManagerFromConfig
+// returns the expected value
+func TestNewRouteManagerFromConfig(t *testing.T) {
+	config := mvcapp.NewConfigurationManager()
+	manager := mvcapp.NewRouteManagerFromConfig(config)
+	if manager.DefaultController != config.DefaultController {
+		t.Error("Failed to create new route manager from provided configuration: values don't match")
+	}
+}
+
 // TestHandleRequest ensures that the RouteManager.HandleRequest method operates as expected
 func TestRouteManager_HandleRequest(t *testing.T) {
 	// Create a route manager
@@ -119,6 +138,8 @@ func TestRouteManager_HandleRequest(t *testing.T) {
 
 	// test default mapping (/ should go to /test/index)
 	req, err = http.NewRequest("GET", "http://localhost", nil)
+	req.Header = http.Header{"Cookie": recorder.HeaderMap["Set-Cookie"]}
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,5 +299,86 @@ func TestRouteManager_HandleRequest(t *testing.T) {
 	if string(data) != string(payload) {
 		t.Error("Failed to validate raw file download")
 		t.Log(string(data))
+	}
+}
+
+// TestRouteManager_SetControllerSessions ensures that the SetControllerSessions method works as expected
+// note this fills the gaps untested by HandleRequest only
+func TestRouteManager_SetControllerSessions(t *testing.T) {
+	manager := mvcapp.NewRouteManager()
+	if err := manager.SetControllerSessions(nil); err == nil {
+		t.Error("Failed to error on nil controller when setting controller sessions")
+	}
+
+	controller := &mvcapp.Controller{}
+	if err := manager.SetControllerSessions(controller); err == nil {
+		t.Error("Failed to error on nil request when setting controller sessions")
+	}
+}
+
+// TestRouteManager_GetController ensures that the GetController method works as expected, note this fills
+// the gaps untested by HandleRequest only
+func TestRouteManager_GetController(t *testing.T) {
+	manager := mvcapp.NewRouteManager()
+	req, err := http.NewRequest("GET", "http://localhost/views/failme", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request to test missing controller: %s", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	manager.HandleRequest(recorder, req)
+
+	manager.RegisterController("Home", newRMDefaultTestController)
+	manager.HandleRequest(recorder, req)
+
+	req, err = http.NewRequest("GET", "http://localhost/Missing/failme", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request to test default controller: %s", err)
+	}
+
+	manager.HandleRequest(recorder, req)
+	manager = mvcapp.NewRouteManager()
+	manager.RegisterController("Failer", newRMDefaultTestController)
+	manager.HandleRequest(recorder, req)
+
+	req, err = http.NewRequest("GET", "http://localhost/", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request to test serve empty file request: %s", err)
+	}
+}
+
+// TestRouteManager_ServeFile ensures that the ServeFile method works as expected, note this fills the gaps
+// untested by HandleRequest only
+func TestRouteManager_ServeFile(t *testing.T) {
+	manager := mvcapp.NewRouteManager()
+	recorder := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "http://localhost/", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request to test serve empty file request: %s", err)
+	}
+
+	if manager.ServeFile(recorder, req) {
+		t.Error("Reporting success serving the root!")
+	}
+
+	err = os.MkdirAll(mvcapp.GetApplicationPath()+"/views", 0644)
+	defer os.RemoveAll(mvcapp.GetApplicationPath() + "/views")
+	if err != nil {
+		t.Fatalf("Failed to create temporary views folder to test restricted files: %s", err)
+	}
+
+	err = ioutil.WriteFile(mvcapp.GetApplicationPath()+"/views/index.htm", []byte("Oh nos?"), 0644)
+	defer os.RemoveAll(mvcapp.GetApplicationPath() + "/views/index.htm")
+	if err != nil {
+		t.Fatalf("Failed to create temporary view template to test restricted files: %s", err)
+	}
+
+	req, err = http.NewRequest("GET", "http://localhost/views/index.htm", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request to test serve empty file request: %s", err)
+	}
+
+	if manager.ServeFile(recorder, req) {
+		t.Error("Reporting success serving a restricted file!")
 	}
 }

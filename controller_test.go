@@ -3,7 +3,7 @@
 	Controller Feature Tests
 	Dan Mayor (dmayor@digivance.com)
 
-	This file defines the version 0.2.0 compatibility of controller.go functions. These functions are written
+	This file defines the version 0.3.0 compatibility of controller.go functions. These functions are written
 	to demonstrate and test the intended use cases of the functions in controller.go
 */
 
@@ -15,7 +15,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,9 +70,9 @@ func TestController_RegisterAction(t *testing.T) {
 	// Invoke an instance of our Test controller (as the route manager would)
 	// based on the route maps
 	controller := newTestController(req)
-	res := controller.Execute()
-	if res == nil {
-		t.Fatal("404 from expected result")
+	res, err := controller.Execute()
+	if err != nil {
+		t.Fatalf("404 from expected result: %s", err)
 	}
 
 	// compare the resulting payload against the expected vaule "test"
@@ -97,9 +99,9 @@ func TestController_GetCookie(t *testing.T) {
 	// Invoke an instance of our Test controller (as the route manager would)
 	// based on the route maps
 	icontroller := newTestController(req)
-	res := icontroller.Execute()
-	if res == nil {
-		t.Fatal("404 from expected result")
+	_, err = icontroller.Execute()
+	if err != nil {
+		t.Fatalf("404 from expected result: %s", err)
 	}
 
 	controller := icontroller.ToController()
@@ -170,15 +172,30 @@ func TestController_DeleteCookie(t *testing.T) {
 
 // TestController_Execute ensures that the Controller.Execute method operates as expected
 func TestController_Execute(t *testing.T) {
+	postData := url.Values{}
+	postData.Set("First", "Name")
+	postData.Add("Last", "Name")
+
 	req, err := http.NewRequest("POST", "http://localhost/test/index/with/parameters", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	icontroller := newTestController(req)
-	res := icontroller.Execute()
-	if res == nil {
-		t.Error("Failed to execute controller action")
+	res, err := icontroller.Execute()
+	if err == nil {
+		t.Error("Failed to prevent executing empty form request")
+	}
+
+	req, err = http.NewRequest("POST", "http://localhost/test/index/with/parameters", strings.NewReader(postData.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	icontroller = newTestController(req)
+	res, err = icontroller.Execute()
+	if err != nil {
+		t.Errorf("Failed to execute controller action: %s", err)
 	}
 
 	data := string(res.Data)
@@ -192,9 +209,9 @@ func TestController_Execute(t *testing.T) {
 	}
 
 	icontroller = newTestController(req)
-	res = icontroller.Execute()
-	if res == nil {
-		t.Error("Failed to execute controller action")
+	res, err = icontroller.Execute()
+	if err != nil {
+		t.Errorf("Failed to execute controller action: %s", err)
 	}
 
 	data = string(res.Data)
@@ -204,8 +221,8 @@ func TestController_Execute(t *testing.T) {
 
 	controller := icontroller.ToController()
 	controller.NotFoundResult = nil
-	res = icontroller.Execute()
-	if res == nil {
+	res, err = icontroller.Execute()
+	if err != nil {
 		t.Error("Failed to execute controller action")
 	}
 
@@ -228,8 +245,23 @@ func TestController_WriteResponse(t *testing.T) {
 	controller := icontroller.ToController()
 	controller.Response = recorder
 
-	res := icontroller.Execute()
-	controller.WriteResponse(res)
+	res, err := icontroller.Execute()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	controller.ContinuePipeline = false
+	err = controller.WriteResponse(res)
+	if err != nil {
+		t.Errorf("Failed to gracefully skip writing response when continue pipeline false: %s", err)
+	}
+
+	controller.ContinuePipeline = true
+	err = controller.WriteResponse(res)
+	if err != nil {
+		t.Errorf("Failed to write response: %s", err)
+	}
+
 	data, err := ioutil.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -475,14 +507,8 @@ func TestController_JSON(t *testing.T) {
 	// We set success to true then overwrite it with the value returned
 	// from the call to JSON. We expect success to equal false if this
 	// part of the test is to pass
-	var success bool = true
-	err = json.Unmarshal(jsonResult.Data, &success)
-	fmt.Println(string(jsonResult.Data))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if success != false {
-		t.Error("Failed to validate API failure json result")
+	expectedResult := "{\"Success\":false,\"Error\":\"Failed to create json payload\"}"
+	if !strings.EqualFold(string(jsonResult.Data), expectedResult) {
+		t.Fatalf("Error comparing json result:\n%s", jsonResult.Data)
 	}
 }

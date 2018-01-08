@@ -12,6 +12,7 @@ package mvcapp_test
 import (
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/digivance/mvcapp"
@@ -22,6 +23,43 @@ func TestNewApplication(t *testing.T) {
 	app := mvcapp.NewApplication()
 	if app == nil {
 		t.Error("Failed to create new mvcapp Application object")
+	}
+}
+
+// TestNewApplicationFromConfig ensures that mvcapp.NewApplicationFromConfig returns the expected value
+func TestNewApplicationFromConfig(t *testing.T) {
+	mvcapp.LogFilename = ""
+	config := mvcapp.NewConfigurationManager()
+	app := mvcapp.NewApplicationFromConfig(config)
+	if app == nil {
+		t.Error("Failed to create new mvcapp Application object from provided configuration")
+	}
+}
+
+// TestNewApplicationFromConfigFile ensures that mvcapp.NewApplicationFromConfigFile returns
+// the expected value
+func TestNewApplicationFromConfigFile(t *testing.T) {
+	configFile := mvcapp.GetApplicationPath() + "/testconfig.json"
+	configData := []byte("{\"HTTPPort\": 80,\"HTTPSPort\": 443,\"LogFilename\": \"./app.log\",\"LogLevel\": 4,\"TLSCertFile\": \"./mycert.crt\",\"TLSKeyFile\": \"./mycert.key\"}")
+	err := ioutil.WriteFile(configFile, configData, 0644)
+	defer os.RemoveAll(configFile)
+
+	if err != nil {
+		t.Errorf("Failed to create new configuration manager json file: %s", err)
+	}
+
+	app, err := mvcapp.NewApplicationFromConfigFile("▒▓╜│:)")
+	if err == nil {
+		t.Error("Failed to fail on invalid filename")
+	}
+
+	app, err = mvcapp.NewApplicationFromConfigFile(configFile)
+	if err != nil {
+		t.Errorf("Failed to create new MVC Application object from provided json config file: %s", err)
+	}
+
+	if app.Config.HTTPSPort != 443 {
+		t.Error("Failed to create new MVC Application object from provided json config file: values don't match")
 	}
 }
 
@@ -40,10 +78,10 @@ func newAppTestController(request *http.Request) mvcapp.IController {
 // TestApplication_Run ensures that the Application.Run method operates as expected
 func TestApplication_Run(t *testing.T) {
 	app := mvcapp.NewApplication()
-	app.HTTPPort = 8906
+	app.Config.HTTPPort = 8906
 	app.RouteManager.RegisterController("Home", newAppTestController)
 
-	if app == nil || app.HTTPPort != 8906 {
+	if app == nil || app.Config.HTTPPort != 8906 {
 		t.Fatal("Failed to create mvcapp Application object")
 	}
 

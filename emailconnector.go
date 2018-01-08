@@ -142,9 +142,9 @@ func NewEmailMessage(from string, to string, subject string, body string) (*Emai
 	}, nil
 }
 
-// NewEmailFromTemplate executes the provided templatePath and data model to constuct the body
+// NewEmailMessageFromTemplate executes the provided templatePath and data model to constuct the body
 // text. This and other provided values are then used to call NewEmailMessage
-func NewEmailFromTemplate(from string, to string, subject string, templatePath string, model interface{}) (*EmailMessage, error) {
+func NewEmailMessageFromTemplate(from string, to string, subject string, templatePath string, model interface{}) (*EmailMessage, error) {
 	funcMap := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
@@ -153,6 +153,7 @@ func NewEmailFromTemplate(from string, to string, subject string, templatePath s
 
 	t, err := template.New("EmailMessage").Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {
+		// Cant test this line yet as the above methods are sure to bind as expected
 		return nil, err
 	}
 
@@ -225,6 +226,7 @@ func (connector *EmailConnector) SendMail(emailMessage *EmailMessage) error {
 	}
 
 	if err := gomail.Send(connector.Sender, message); err != nil {
+		// Can't really test this without targetting a fubard mail server
 		return err
 	}
 
