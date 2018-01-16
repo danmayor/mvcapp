@@ -145,7 +145,7 @@ func NewBaseController(request *http.Request) *Controller {
 		QueryString:    map[string]string{},
 		Fragment:       "",
 
-		DefaultAction: "",
+		DefaultAction: "Index",
 		ActionRoutes:  make([]*ActionMap, 0),
 		ViewData:      make(map[string]interface{}, 0),
 	}
