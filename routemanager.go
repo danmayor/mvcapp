@@ -318,8 +318,6 @@ func (manager *RouteManager) ServeFile(response http.ResponseWriter, request *ht
 		return false
 	}
 
-	fmt.Println(path)
-
 	if !manager.ValidPath(request.URL.Path) {
 		LogWarningf("User tried to request from an invalid path and was blocked: %s", path)
 		return false
