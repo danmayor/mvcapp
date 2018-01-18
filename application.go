@@ -248,6 +248,6 @@ func (app *Application) RedirectSecureJS(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='//%s';</script></body>", req.URL.Path)
+	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='https://%s%s';</script></body>", app.Config.DomainName, req.URL.Path)
 	w.Write([]byte(data))
 }
