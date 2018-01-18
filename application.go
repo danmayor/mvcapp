@@ -191,7 +191,7 @@ func (app *Application) RunForcedSecureJS(certFile string, keyFile string) error
 	var err error
 
 	config := app.Config
-	addr := fmt.Sprintf("%s:%d", config.BindAddress, config.HTTPPort)
+	addr := fmt.Sprintf("%s:%d", config.DomainName, config.HTTPPort)
 	app.HTTPServer = &http.Server{Addr: addr}
 	app.HTTPServer.Handler = http.HandlerFunc(app.RedirectSecureJS)
 	go func() {
@@ -248,6 +248,6 @@ func (app *Application) RedirectSecureJS(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='https://%s%s';</script></body>", req.Host, req.URL.Path)
+	data := fmt.Sprintf("<html><head><title>Redirecting to secure site mode</title></head><body><script type=\"text/javascript\">window.location.href='https://%s%s';</script></body>", app.Config.DomainName, req.URL.Path)
 	w.Write([]byte(data))
 }
